@@ -10,28 +10,34 @@ const CARD_LAYOUT = [
 
 /**
  * 城市上方「最近三张」缩略：第一张最大，第二、第三张在后面稍微小一点、错开一点。
+ * 缩略图按原图比例显示（只限制最大宽高，不裁切），所以竖图就是竖的、横图就是横的。
  */
 export default function PhotoStack({ photos, onOpen }: { photos: Photo[]; onOpen: () => void }) {
 	const stack = photos.slice(0, 3)
 	if (stack.length === 0) return null
 
 	return (
-		<button type='button' onClick={onOpen} className='relative block cursor-pointer' style={{ width: 150, height: 118 }}>
+		<button type='button' onClick={onOpen} className='relative block cursor-pointer' style={{ width: 138, height: 112 }}>
 			{stack.map((photo, index) => {
 				const layout = CARD_LAYOUT[index]
 				return (
 					<span
 						key={photo.id}
-						className='absolute overflow-hidden rounded-[10px] border-[3px] border-white bg-white shadow-[0_16px_28px_-16px_rgba(70,45,30,0.6)]'
+						className='absolute block overflow-hidden rounded-[9px] border-[3px] border-white bg-white shadow-[0_16px_28px_-16px_rgba(70,45,30,0.6)]'
 						style={{
 							left: layout.left,
 							top: layout.top,
-							width: 118,
-							height: 86,
 							transform: `rotate(${layout.rotate}deg) scale(${layout.scale})`,
+							transformOrigin: 'left top',
 							zIndex: layout.z
 						}}>
-						<img src={photo.src} alt={photo.title} className='h-full w-full object-cover' draggable={false} />
+						<img
+							src={photo.src}
+							alt={photo.title}
+							draggable={false}
+							className='block rounded-[5px]'
+							style={{ maxHeight: 78, maxWidth: 124, width: 'auto', height: 'auto' }}
+						/>
 					</span>
 				)
 			})}

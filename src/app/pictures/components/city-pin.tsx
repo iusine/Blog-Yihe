@@ -42,12 +42,6 @@ export default function CityPin({ x, y, scale, name, photos, onOpen }: CityPinPr
 							<circle cx='44' cy='9' r='2.6' fill='#2fcbe7' stroke='white' strokeWidth='1.2' />
 						</svg>
 
-						<span
-							className='pointer-events-none absolute top-2 left-1/2 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-medium whitespace-nowrap text-[#5B423F] shadow-sm'
-							style={{ transform: 'translateX(-50%) rotateX(-42deg)', transformOrigin: 'center top' }}>
-							{name}
-						</span>
-
 						<div className='absolute transition-transform duration-200 hover:-translate-y-1' style={{ left: 22, top: -128 }}>
 							<PhotoStack photos={photos} onOpen={onOpen} />
 						</div>

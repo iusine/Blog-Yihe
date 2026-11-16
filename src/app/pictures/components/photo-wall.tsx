@@ -162,14 +162,15 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 									zIndex: position.z,
 									transform: `translate(-50%, -50%) rotate(${position.rotate}deg) scale(${position.scale})`
 								}}>
-								<span className='block rounded-[10px] border-[6px] border-white bg-white pb-5 shadow-[0_18px_36px_-18px_rgba(60,40,30,0.55)] transition-shadow'>
+								<span className='block w-fit rounded-[10px] border-[6px] border-white bg-white pb-5 shadow-[0_18px_36px_-18px_rgba(60,40,30,0.55)] transition-shadow'>
 									<img
 										src={photo.src}
 										alt={photo.title}
-										className='block h-[108px] w-[152px] rounded-[4px] object-cover sm:h-[148px] sm:w-[208px]'
+										className='block rounded-[4px]'
+										style={{ maxHeight: 190, maxWidth: 330, width: 'auto', height: 'auto' }}
 										draggable={false}
 									/>
-									<span className='mt-1.5 flex max-w-[152px] items-center justify-between gap-2 px-1 text-[10px] text-[#5B423F] sm:max-w-[208px]'>
+									<span className='mt-1.5 flex max-w-full items-center justify-between gap-2 px-1 text-[10px] text-[#5B423F]'>
 										<span className='truncate'>{photo.title}</span>
 										<span className='text-secondary shrink-0'>{photo.date}</span>
 									</span>

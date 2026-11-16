@@ -134,7 +134,7 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 			<div className='space-y-3'>
 				{drafts.map(draft => (
 					<div key={draft.key} className='flex gap-3 rounded-xl border bg-white/70 p-2.5'>
-						<img src={draft.previewUrl} alt={draft.title} className='h-24 w-32 shrink-0 rounded-lg object-cover' />
+						<img src={draft.previewUrl} alt={draft.title} className='h-24 w-32 shrink-0 rounded-lg bg-black/5 object-contain' />
 
 						<div className='min-w-0 flex-1 space-y-1.5'>
 							<input

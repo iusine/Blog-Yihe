@@ -2,7 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Minus, Plus, RefreshCcw } from 'lucide-react'
-import { centerOf, featurePath, featuresBounds, isInteractive, type GeoCollection, type GeoFeature, type Point } from '../lib/geo'
+import {
+	boundsOf,
+	centerOf,
+	featurePath,
+	featuresBounds,
+	isInteractive,
+	shortCityName,
+	shortProvinceName,
+	type GeoCollection,
+	type GeoFeature,
+	type Point
+} from '../lib/geo'
+import { buildProvinceColorMap, PROVINCE_CAPITALS } from '../lib/region-colors'
+import { placeLabels, type LabelInput } from '../lib/labels'
 import type { Photo } from '../types'
 import CityPin from './city-pin'
 
@@ -16,13 +29,28 @@ const BOUNDS_MIN_LAT = 17.5
 /** 倾斜后屏幕上的纵向压缩比例，取景换算时要带上 */
 const COS_TILT = Math.cos((TILT * Math.PI) / 180)
 
+const PROVINCE_FONT = 12
+const CITY_FONT = 11
+/** 首都（北京）在地图上永远加粗 */
+const CAPITAL_CODE = '110000'
+
+/** 小地方挤在一起时，手动把标签推开，避免互相压住 */
+const LABEL_NUDGE: Record<string, { dx: number; dy: number }> = {
+	'110000': { dx: -6, dy: -12 },
+	'120000': { dx: 8, dy: 12 },
+	'310000': { dx: 10, dy: -2 },
+	'810000': { dx: 14, dy: -10 },
+	'820000': { dx: -16, dy: 12 },
+	'460000': { dx: 0, dy: 10 }
+}
+
 type MapViewProps = {
 	china: GeoCollection
 	province: GeoFeature | null
 	cities: GeoCollection | null
 	loadingCities: boolean
 	photosByCity: Map<string, Photo[]>
-	/** 每个省有多少张照片，用来在全国视图上做提示 */
+	/** 每个省有多少张照片，决定这个省用不用高饱和色 */
 	photoCountByProvince?: Map<string, number>
 	onProvinceClick: (feature: GeoFeature) => void
 	onCityClick: (feature: GeoFeature) => void
@@ -61,13 +89,26 @@ export default function MapView({
 	const planeWidth = PLANE_WIDTH
 	const planeHeight = heightUnits * pxPerUnit
 
+	/** 省份配色：相邻省份一定不同色，有照片的省之间也尽量错开 */
+	const provinceColors = useMemo(() => {
+		const codes: string[] = []
+		for (const [code, count] of photoCountByProvince ?? []) {
+			if (count > 0) codes.push(code)
+		}
+		return buildProvinceColorMap(codes)
+	}, [photoCountByProvince])
+
 	const chinaPaths = useMemo(
 		() =>
 			chinaFeatures.map(feature => ({
 				feature,
 				code: String(feature.properties.adcode),
 				name: feature.properties.name ?? '',
-				d: featurePath(feature)
+				d: featurePath(feature),
+				area: (() => {
+					const b = boundsOf(feature)
+					return (b.maxX - b.minX) * (b.maxY - b.minY)
+				})()
 			})),
 		[chinaFeatures]
 	)
@@ -83,7 +124,7 @@ export default function MapView({
 		[cities]
 	)
 
-	/** 平面坐标 → 百分比（用于绝对定位的图钉） */
+	/** 平面坐标 → 百分比（用于绝对定位的图钉和文字） */
 	const toPercent = useCallback(
 		(point: Point) => ({
 			x: ((point.x - chinaBounds.minX) / widthUnits) * 100,
@@ -188,8 +229,84 @@ export default function MapView({
 	}
 
 	const activeProvinceCode = province ? String(province.properties.adcode) : null
+	const capitalCityName = activeProvinceCode ? PROVINCE_CAPITALS[activeProvinceCode] : undefined
 	/** 把「屏幕上 1px」换算成 SVG 用户单位，缩放时线宽才不会跟着变粗 */
 	const strokeUnits = (pixels: number) => pixels / (pxPerUnit * camera.scale)
+
+	/** 百分比坐标 → 相对容器中心的屏幕像素（和相机的平移/缩放一致） */
+	const projectToScreen = useCallback(
+		(point: { x: number; y: number }) => ({
+			x: (point.x / 100 - 0.5) * planeWidth * camera.scale + camera.x,
+			y: (point.y / 100 - 0.5) * planeHeight * COS_TILT * camera.scale + camera.y
+		}),
+		[planeWidth, planeHeight, camera.scale, camera.x, camera.y]
+	)
+
+	const provinceLabelInputs = useMemo<LabelInput[]>(() => {
+		if (province) return []
+		return chinaPaths.flatMap(({ feature, code, name, area }) => {
+			const center = centerOf(feature)
+			if (!center) return []
+			const percent = toPercent(center)
+			return [
+				{
+					key: code,
+					x: percent.x,
+					y: percent.y,
+					text: shortProvinceName(code, name),
+					priority: area,
+					offset: LABEL_NUDGE[code]
+				}
+			]
+		})
+	}, [chinaPaths, province, toPercent])
+
+	const cityLabelInputs = useMemo<LabelInput[]>(() => {
+		if (!province) return []
+		return cityPaths.flatMap(({ feature, code, name }) => {
+			const center = centerOf(feature)
+			if (!center) return []
+			const percent = toPercent(center)
+			const bounds = boundsOf(feature)
+			return [
+				{
+					key: code,
+					x: percent.x,
+					y: percent.y,
+					text: shortCityName(name),
+					priority: (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY)
+				}
+			]
+		})
+	}, [cityPaths, province, toPercent])
+
+	const isCityCapital = useCallback(
+		(name: string) => Boolean(capitalCityName) && shortCityName(name) === shortCityName(capitalCityName as string),
+		[capitalCityName]
+	)
+
+	const provinceLabels = useMemo(
+		() =>
+			placeLabels(provinceLabelInputs, {
+				project: projectToScreen,
+				fontSize: PROVINCE_FONT,
+				isBold: label => label.key === CAPITAL_CODE
+			}),
+		[provinceLabelInputs, projectToScreen]
+	)
+
+	const cityLabels = useMemo(
+		() =>
+			placeLabels(cityLabelInputs, {
+				project: projectToScreen,
+				fontSize: CITY_FONT,
+				isBold: label => {
+					const path = cityPaths.find(item => item.code === label.key)
+					return path ? isCityCapital(path.name) : false
+				}
+			}),
+		[cityLabelInputs, projectToScreen, cityPaths, isCityCapital]
+	)
 
 	return (
 		<div
@@ -211,19 +328,19 @@ export default function MapView({
 						className='relative'
 						style={{ width: planeWidth, height: planeHeight, transform: `rotateX(${TILT}deg)`, transformStyle: 'preserve-3d' }}>
 						{/* 挤出层：沿屏幕纵向偏移一点点，露出侧边，制造厚度感（按缩放反算，保持视觉厚度恒定） */}
-						<div className='absolute inset-0' aria-hidden style={{ transform: `translateY(${10 / camera.scale}px)` }}>
+						<div className='absolute inset-0' aria-hidden style={{ transform: `translateY(${10 / camera.scale}px)`, filter: 'brightness(0.93)' }}>
 							<svg width={planeWidth} height={planeHeight} viewBox={`${chinaBounds.minX} ${chinaBounds.minY} ${widthUnits} ${heightUnits}`} className='block'>
 								{chinaPaths.map(({ code, d }) => (
 									<path
 										key={code}
 										d={d}
-										fill='#e6dccd'
+										fill={provinceColors[code]?.fill ?? '#e6dccd'}
 										stroke='none'
 										opacity={province && activeProvinceCode !== code ? 0 : 1}
 									/>
 								))}
 								{cityPaths.map(({ code, d }) => (
-									<path key={code} d={d} fill='#e6dccd' stroke='none' />
+									<path key={code} d={d} fill='#ece2d2' stroke='none' />
 								))}
 							</svg>
 						</div>
@@ -238,23 +355,17 @@ export default function MapView({
 								const isActive = activeProvinceCode === code
 								const isHovered = hoveredCode === code
 								const hasPhotos = (photoCountByProvince?.get(code) ?? 0) > 0
+								const color = provinceColors[code]
+								const baseFill = hasPhotos ? (color?.strong ?? '#9fdcf0') : (color?.fill ?? '#eef7f9')
 								return (
 									<path
 										key={code}
 										data-adcode={code}
 										d={d}
 										className='cursor-pointer transition-[fill,opacity] duration-200'
-										stroke='rgba(91, 66, 63, 0.42)'
+										stroke='rgba(91, 66, 63, 0.4)'
 										strokeWidth={strokeUnits(1.1)}
-										fill={
-											isActive
-												? 'rgba(47, 203, 231, 0.32)'
-												: isHovered
-													? 'rgba(47, 203, 231, 0.4)'
-													: hasPhotos
-														? 'rgba(47, 203, 231, 0.14)'
-														: 'rgba(255, 255, 255, 0.94)'
-										}
+										fill={isHovered ? '#7fd4ea' : isActive ? '#8fdcef' : baseFill}
 										opacity={province && !isActive ? 0.1 : 1}
 										onMouseEnter={event => {
 											setHoveredCode(code)
@@ -271,15 +382,16 @@ export default function MapView({
 
 							{cityPaths.map(({ feature, code, name, d }) => {
 								const isHovered = hoveredCode === code
+								const hasPhotos = (photosByCity.get(code)?.length ?? 0) > 0
 								return (
 									<path
 										key={code}
 										data-adcode={code}
 										d={d}
 										className='cursor-pointer transition-[fill] duration-200'
-										stroke='rgba(91, 66, 63, 0.3)'
+										stroke='rgba(91, 66, 63, 0.28)'
 										strokeWidth={strokeUnits(1)}
-										fill={isHovered ? 'rgba(47, 203, 231, 0.34)' : 'rgba(255, 255, 255, 0.94)'}
+										fill={isHovered ? '#8fdcef' : hasPhotos ? '#bfe8f4' : '#f7fafb'}
 										onMouseEnter={event => {
 											setHoveredCode(code)
 											setTooltip({ x: event.clientX, y: event.clientY, name })
@@ -315,6 +427,26 @@ export default function MapView({
 							})}
 					</div>
 				</div>
+			</div>
+
+			{/* 文字标注层：在倾斜平面之外，用相机变换算出位置，所以字永远是正的 */}
+			<div className='pointer-events-none absolute inset-0 z-20 overflow-hidden'>
+				{(province ? cityLabels : provinceLabels).map(label => (
+					<span
+						key={label.key}
+						className='absolute whitespace-nowrap text-[#4a3431]'
+						style={{
+							left: `calc(50% + ${label.left}px)`,
+							top: `calc(50% + ${label.top}px)`,
+							transform: 'translate(-50%, -50%)',
+							fontSize: province ? CITY_FONT : PROVINCE_FONT,
+							fontWeight: label.bold ? 700 : 500,
+							letterSpacing: province ? 0.2 : 0.8,
+							textShadow: '0 0 3px rgba(255,255,255,0.95), 0 0 7px rgba(255,255,255,0.75)'
+						}}>
+						{label.text}
+					</span>
+				))}
 			</div>
 
 			{/* 悬浮提示 */}

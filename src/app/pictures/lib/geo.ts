@@ -88,6 +88,77 @@ export function centerOf(feature: GeoFeature): Point | null {
 	return project(c)
 }
 
+/** 单个 feature 的包围盒，用来给标注排优先级（大省先占位） */
+export function boundsOf(feature: GeoFeature): Bounds {
+	let minX = Infinity
+	let minY = Infinity
+	let maxX = -Infinity
+	let maxY = -Infinity
+
+	for (const ring of ringsOf(feature)) {
+		for (const point of ring) {
+			const { x, y } = project(point)
+			if (x < minX) minX = x
+			if (y < minY) minY = y
+			if (x > maxX) maxX = x
+			if (y > maxY) maxY = y
+		}
+	}
+
+	return { minX, minY, maxX, maxY }
+}
+
+/** 省份/城市的简称：地图上写「广东」比「广东省」清爽 */
+const SHORT_NAMES: Record<string, string> = {
+	'110000': '北京',
+	'120000': '天津',
+	'130000': '河北',
+	'140000': '山西',
+	'150000': '内蒙古',
+	'210000': '辽宁',
+	'220000': '吉林',
+	'230000': '黑龙江',
+	'310000': '上海',
+	'320000': '江苏',
+	'330000': '浙江',
+	'340000': '安徽',
+	'350000': '福建',
+	'360000': '江西',
+	'370000': '山东',
+	'410000': '河南',
+	'420000': '湖北',
+	'430000': '湖南',
+	'440000': '广东',
+	'450000': '广西',
+	'460000': '海南',
+	'500000': '重庆',
+	'510000': '四川',
+	'520000': '贵州',
+	'530000': '云南',
+	'540000': '西藏',
+	'610000': '陕西',
+	'620000': '甘肃',
+	'630000': '青海',
+	'640000': '宁夏',
+	'650000': '新疆',
+	'710000': '台湾',
+	'810000': '香港',
+	'820000': '澳门'
+}
+
+export function shortProvinceName(code: string, fallback: string): string {
+	return SHORT_NAMES[code] ?? fallback.replace(/(省|市|自治区|特别行政区)$/u, '')
+}
+
+export function shortCityName(name: string): string {
+	return name
+		.replace(/市$/u, '')
+		.replace(/(土家族苗族|土家族|苗族|彝族|藏族|壮族|回族|蒙古族|朝鲜族|白族|傣族|景颇族|哈尼族|傈僳族|布依族|侗族|瑶族|羌族|纳西族|拉祜族|佤族|水族|仡佬族|黎族|畲族|满族|蒙古族|柯尔克孜|哈萨克|锡伯|塔吉克|裕固|东乡|保安|撒拉|土族|达斡尔|鄂温克|鄂伦春|赫哲|独龙|怒族|德昂|阿昌|普米|基诺|布朗|毛南|仫佬|京族|高山族)自治州$/u, '自治州')
+		.replace(/地区$/u, '')
+		.replace(/盟$/u, '')
+}
+
+
 /** 全国地图里的「南海诸岛」小图（adcode 是字符串），不参与交互 */
 export function isInteractive(feature: GeoFeature): boolean {
 	return typeof feature.properties.adcode === 'number' && Boolean(feature.properties.name)

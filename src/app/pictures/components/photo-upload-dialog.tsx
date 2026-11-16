@@ -184,7 +184,7 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 					取消
 				</button>
 				<button type='button' onClick={handleSubmit} disabled={saving || drafts.length === 0} className='brand-btn flex-1 justify-center rounded-lg px-4 py-2 text-sm disabled:opacity-60'>
-					{saving ? '上传中…' : `上传 ${drafts.length || ''} 张`}
+					{saving ? '上传中…' : drafts.length > 0 ? `上传 ${drafts.length} 张` : '上传'}
 				</button>
 			</div>
 		</DialogModal>

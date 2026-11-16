@@ -7,11 +7,14 @@ import { ChevronLeft } from 'lucide-react'
 import MapView from './components/map-view'
 import PhotoWall from './components/photo-wall'
 import PhotoInfoDialog from './components/photo-info-dialog'
+import PhotoEditDialog from './components/photo-edit-dialog'
 import PhotoUploadDialog from './components/photo-upload-dialog'
+import FootprintStatsView from './components/footprint-stats'
 import { fetchProvinceGeo, type GeoCollection, type GeoFeature } from './lib/geo'
 import { groupPhotosByCity } from './lib/photos'
-import { pushPhotos } from './services/push-photos'
-import type { CityRef, NewPhotoDraft, Photo } from './types'
+import { computeFootprint } from './lib/footprint'
+import { pushPhotos, updatePhotoInfo } from './services/push-photos'
+import type { CityRef, NewPhotoDraft, Photo, PhotoPatch } from './types'
 import { useAuthStore } from '@/hooks/use-auth'
 
 type WallTarget = { province: GeoFeature; city: GeoFeature }
@@ -32,9 +35,12 @@ export default function Page() {
 	const [loadingCities, setLoadingCities] = useState(false)
 	const [wallTarget, setWallTarget] = useState<WallTarget | null>(null)
 	const [infoPhoto, setInfoPhoto] = useState<Photo | null>(null)
+	const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null)
 	const [uploadOpen, setUploadOpen] = useState(false)
 
 	const keyInputRef = useRef<HTMLInputElement>(null)
+	/** 导入私钥之后要接着做的事（上传 / 修改），导入前先存起来 */
+	const pendingActionRef = useRef<(() => void) | null>(null)
 	const { isAuth, setPrivateKey } = useAuthStore()
 
 	useEffect(() => {
@@ -63,6 +69,7 @@ export default function Page() {
 		for (const photo of photos) counts.set(photo.province, (counts.get(photo.province) ?? 0) + 1)
 		return counts
 	}, [photos])
+	const footprint = useMemo(() => computeFootprint(photos), [photos])
 
 	const openProvince = useCallback(async (feature: GeoFeature) => {
 		const adcode = adcodeOf(feature)
@@ -96,20 +103,38 @@ export default function Page() {
 			}
 		: null
 
-	const requestUpload = useCallback(() => {
-		if (isAuth) {
-			setUploadOpen(true)
-			return
-		}
-		keyInputRef.current?.click()
-	}, [isAuth])
+	/** 需要写入 GitHub 的操作：没导入私钥就先弹文件选择，导入后自动继续 */
+	const requireAuth = useCallback(
+		(action: () => void) => {
+			if (isAuth) {
+				action()
+				return
+			}
+			pendingActionRef.current = action
+			keyInputRef.current?.click()
+		},
+		[isAuth]
+	)
+
+	const requestUpload = useCallback(() => requireAuth(() => setUploadOpen(true)), [requireAuth])
+
+	const requestEdit = useCallback(
+		(photo: Photo) =>
+			requireAuth(() => {
+				setInfoPhoto(null)
+				setEditingPhoto(photo)
+			}),
+		[requireAuth]
+	)
 
 	const handleKeyFile = async (file: File) => {
 		try {
 			const text = await file.text()
 			await setPrivateKey(text)
-			toast.success('私钥已导入，可以上传照片了')
-			setUploadOpen(true)
+			toast.success('私钥已导入')
+			const action = pendingActionRef.current
+			pendingActionRef.current = null
+			action?.()
 		} catch (error) {
 			console.error('Failed to read private key:', error)
 			toast.error('读取密钥文件失败')
@@ -120,6 +145,14 @@ export default function Page() {
 		if (!cityRef) throw new Error('没有选中城市')
 		const next = await pushPhotos({ existing: photos, city: cityRef, drafts })
 		setPhotos(next)
+	}
+
+	const handleSaveEdit = async (patch: PhotoPatch) => {
+		const target = editingPhoto
+		if (!target) return
+		const next = await updatePhotoInfo({ photos, id: target.id, patch })
+		setPhotos(next)
+		setEditingPhoto(null)
 	}
 
 	const wallPhotos = wallTarget ? (photosByCity.get(adcodeOf(wallTarget.city)) ?? []) : []
@@ -147,30 +180,38 @@ export default function Page() {
 				</div>
 			)}
 
-			{/* 顶部：标题 + 面包屑（放在中间，避开左上角的导航卡） */}
-			<div className='pointer-events-none absolute inset-x-0 top-5 z-20 flex justify-center px-4 sm:top-7'>
-				<div className='pointer-events-auto flex items-center gap-3 rounded-2xl border bg-card/85 px-4 py-2 shadow-[0_18px_30px_-24px_rgba(70,45,30,0.45)] backdrop-blur-md'>
-					<h1 className='text-[15px] leading-none font-semibold text-[#5B423F]'>照片墙</h1>
-					<span className='h-4 w-px bg-[#5B423F]/15' />
+			{/* 顶部：足迹统计条（参考高德足迹）+ 面包屑 */}
+			<div className='pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center px-4 sm:top-6'>
+				<div className='pointer-events-auto flex items-center gap-4 rounded-2xl border bg-card/85 px-5 py-2.5 shadow-[0_18px_30px_-24px_rgba(70,45,30,0.45)] backdrop-blur-md'>
+					<div className='flex flex-col justify-center'>
+						<h1 className='text-[13px] leading-none font-semibold text-[#5B423F]'>我的足迹</h1>
 
-					{province ? (
-						<div className='flex items-center gap-1 text-[11px]'>
-							<button type='button' onClick={resetToChina} className='text-secondary inline-flex items-center gap-0.5 transition-colors hover:text-[#5B423F]'>
-								<ChevronLeft className='h-3 w-3' />
-								中国
-							</button>
-							<span className='text-secondary/50'>/</span>
-							<span className='text-[#5B423F]'>{nameOf(province)}</span>
-						</div>
-					) : (
-						<p className='text-secondary text-[11px]'>点省份进入 · 滚轮缩放 · 拖动平移</p>
-					)}
+						{province ? (
+							<div className='mt-1.5 flex items-center gap-1 text-[10px]'>
+								<button
+									type='button'
+									onClick={resetToChina}
+									className='text-secondary inline-flex items-center gap-0.5 transition-colors hover:text-[#5B423F]'>
+									<ChevronLeft className='h-3 w-3' />
+									中国
+								</button>
+								<span className='text-secondary/50'>/</span>
+								<span className='text-[#5B423F]'>{nameOf(province)}</span>
+							</div>
+						) : (
+							<p className='text-secondary mt-1.5 text-[10px]'>点省份进入 · 滚轮缩放 · 拖动平移</p>
+						)}
+					</div>
+
+					<span className='h-9 w-px bg-[#5B423F]/12' />
+
+					<FootprintStatsView stats={footprint} />
 				</div>
 			</div>
 
 			{/* 左下：操作提示 */}
 			{!wallTarget && (
-				<p className='text-secondary pointer-events-none absolute bottom-5 left-5 z-10 max-sm:hidden text-[11px]'>
+				<p className='text-secondary pointer-events-none absolute bottom-5 left-5 z-10 text-[11px] max-sm:hidden'>
 					{province ? '点城市查看/上传照片' : '照片会按城市归档，点击省份开始'}
 				</p>
 			)}
@@ -190,7 +231,23 @@ export default function Page() {
 				)}
 			</AnimatePresence>
 
-			{infoPhoto && <PhotoInfoDialog photo={infoPhoto} cityName={cityRef?.cityName} onClose={() => setInfoPhoto(null)} />}
+			{infoPhoto && (
+				<PhotoInfoDialog
+					photo={infoPhoto}
+					cityName={cityRef?.cityName}
+					onClose={() => setInfoPhoto(null)}
+					onEdit={() => requestEdit(infoPhoto)}
+				/>
+			)}
+
+			{editingPhoto && (
+				<PhotoEditDialog
+					photo={editingPhoto}
+					cityName={cityRef?.cityName}
+					onClose={() => setEditingPhoto(null)}
+					onSave={handleSaveEdit}
+				/>
+			)}
 
 			{uploadOpen && cityRef && <PhotoUploadDialog cityName={cityRef.cityName} onClose={() => setUploadOpen(false)} onSubmit={handleUpload} />}
 

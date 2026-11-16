@@ -30,3 +30,12 @@ export type NewPhotoDraft = {
 	date: string
 	location: string
 }
+
+/** 可以修改的照片信息（图片本身和归属城市不变） */
+export type PhotoPatch = {
+	title: string
+	date: string
+	location?: string
+	description?: string
+	tags?: string[]
+}

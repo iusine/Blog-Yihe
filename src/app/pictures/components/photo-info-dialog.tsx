@@ -1,9 +1,18 @@
 'use client'
 
+import { Pencil } from 'lucide-react'
 import { DialogModal } from '@/components/dialog-modal'
 import type { Photo } from '../types'
 
-export default function PhotoInfoDialog({ photo, cityName, onClose }: { photo: Photo; cityName?: string; onClose: () => void }) {
+type Props = {
+	photo: Photo
+	cityName?: string
+	onClose: () => void
+	/** 传入则显示「修改信息」按钮 */
+	onEdit?: () => void
+}
+
+export default function PhotoInfoDialog({ photo, cityName, onClose, onEdit }: Props) {
 	return (
 		<DialogModal open onClose={onClose} className='card w-[min(960px,94vw)] overflow-hidden p-0'>
 			<div className='flex max-h-[88vh] flex-col md:flex-row'>
@@ -34,9 +43,20 @@ export default function PhotoInfoDialog({ photo, cityName, onClose }: { photo: P
 						</div>
 					)}
 
-					<button type='button' onClick={onClose} className='brand-btn mt-6 w-full justify-center rounded-xl px-4 py-2 text-sm'>
-						关闭
-					</button>
+					<div className='mt-6 flex gap-2'>
+						{onEdit && (
+							<button
+								type='button'
+								onClick={onEdit}
+								className='bg-card flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-4 py-2 text-sm transition-colors hover:bg-white'>
+								<Pencil className='h-3.5 w-3.5' />
+								修改信息
+							</button>
+						)}
+						<button type='button' onClick={onClose} className='brand-btn flex-1 justify-center rounded-xl px-4 py-2 text-sm'>
+							关闭
+						</button>
+					</div>
 				</div>
 			</div>
 		</DialogModal>

@@ -5,6 +5,8 @@ import { useConfigStore } from './stores/config-store'
 import { CARD_SPACING } from '@/consts'
 import { useRouter } from 'next/navigation'
 import { HomeDraggableLayer } from './home-draggable-layer'
+import FootprintStatsView from '@/app/pictures/components/footprint-stats'
+import { usePhotoFootprint } from '@/app/pictures/lib/footprint'
 
 export default function ArtCard() {
     const center = useCenterStore()
@@ -20,6 +22,7 @@ export default function ArtCard() {
     const currentId = siteContent.currentArtImageId
     const currentArt = (currentId ? artImages.find(item => item.id === currentId) : undefined) ?? artImages[0]
     const artUrl = currentArt?.url || '/images/art/cat.png'
+    const footprint = usePhotoFootprint()
 
     return (
         <HomeDraggableLayer cardKey='artCard' x={x} y={y} width={styles.width} height={styles.height}>
@@ -36,6 +39,17 @@ export default function ArtCard() {
                 )}
 
                 <img onClick={() => router.push('/pictures')} src={artUrl} alt='wall art' className='h-full w-full rounded-[32px] object-cover' />
+
+                {/* 足迹入口条：参考高德足迹，点图片进地图页 */}
+                <div
+                    onClick={() => router.push('/pictures')}
+                    className='absolute inset-x-4 bottom-4 flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white/72 px-3.5 py-2 backdrop-blur-md transition-colors hover:bg-white/88'>
+                    <span className='flex flex-col leading-none'>
+                        <span className='text-[11px] font-semibold text-[#5B423F]'>我的足迹</span>
+                        <span className='text-secondary mt-1 text-[9px]'>点开看旅行地图</span>
+                    </span>
+                    <FootprintStatsView stats={footprint} compact />
+                </div>
             </Card>
         </HomeDraggableLayer>
     )

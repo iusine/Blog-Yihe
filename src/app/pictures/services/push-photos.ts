@@ -1,6 +1,6 @@
 import { addHashedImage, commitFiles, fileTreeItem } from '@/lib/github-commit'
 import type { TreeItem } from '@/lib/github-client'
-import type { CityRef, NewPhotoDraft, Photo } from '../types'
+import type { CityRef, NewPhotoDraft, Photo, PhotoPatch } from '../types'
 import { toast } from 'sonner'
 
 const LIST_PATH = 'public/pictures/list.json'
@@ -57,6 +57,49 @@ export async function pushPhotos(params: PushPhotosParams): Promise<Photo[]> {
 			treeItems.push(fileTreeItem(LIST_PATH, await ctx.blobFromJson(next)))
 
 			return { treeItems, result: next }
+		}
+	})
+}
+
+export type UpdatePhotoParams = {
+	photos: Photo[]
+	id: string
+	patch: PhotoPatch
+}
+
+/**
+ * 修改一张照片的信息（标题 / 日期 / 地点 / 说明 / 标签）。
+ * 只重写 list.json，不动图片文件本身。
+ */
+export async function updatePhotoInfo(params: UpdatePhotoParams): Promise<Photo[]> {
+	const { photos, id, patch } = params
+	const target = photos.find(photo => photo.id === id)
+	if (!target) throw new Error('找不到这张照片')
+
+	const location = patch.location?.trim() || undefined
+	const description = patch.description?.trim() || undefined
+
+	return commitFiles<Photo[]>({
+		message: `修改照片信息: ${target.title} → ${patch.title.trim() || target.title}`,
+		successMessage: '照片信息已更新！',
+		notifyLocalSync: true,
+		prepare: async ctx => {
+			const next = photos
+				.map(photo =>
+					photo.id === id
+						? {
+								...photo,
+								title: patch.title.trim() || photo.title,
+								date: patch.date || photo.date,
+								location,
+								description,
+								tags: patch.tags && patch.tags.length > 0 ? patch.tags : undefined
+							}
+						: photo
+				)
+				.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+
+			return { treeItems: [fileTreeItem(LIST_PATH, await ctx.blobFromJson(next))], result: next }
 		}
 	})
 }

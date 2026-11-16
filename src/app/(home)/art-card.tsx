@@ -40,15 +40,25 @@ export default function ArtCard() {
 
                 <img onClick={() => router.push('/pictures')} src={artUrl} alt='wall art' className='h-full w-full rounded-[32px] object-cover' />
 
-                {/* 足迹入口条：参考高德足迹，点图片进地图页 */}
+                {/* 足迹入口条：底图用 avatar.png，按宽度铺满、上下裁切到这条的比例 */}
                 <div
                     onClick={() => router.push('/pictures')}
-                    className='absolute inset-x-4 bottom-4 flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white/72 px-3.5 py-2 backdrop-blur-md transition-colors hover:bg-white/88'>
-                    <span className='flex flex-col leading-none'>
-                        <span className='text-[11px] font-semibold text-[#5B423F]'>我的足迹</span>
-                        <span className='text-secondary mt-1 text-[9px]'>点开看旅行地图</span>
-                    </span>
-                    <FootprintStatsView stats={footprint} compact />
+                    className='absolute inset-x-4 bottom-4 h-12 cursor-pointer overflow-hidden rounded-2xl shadow-[0_12px_24px_-16px_rgba(60,40,30,0.85)] ring-1 ring-white/35 transition-transform duration-200 hover:-translate-y-0.5'>
+                    <img
+                        src='/images/avatar.png'
+                        alt=''
+                        aria-hidden
+                        className='pointer-events-none absolute inset-0 h-full w-full object-cover object-center'
+                    />
+                    <span className='pointer-events-none absolute inset-0 bg-gradient-to-r from-[#2f2320]/80 via-[#2f2320]/52 to-[#2f2320]/28' />
+
+                    <div className='relative flex h-full items-center justify-between gap-3 px-3.5'>
+                        <span className='flex flex-col leading-none'>
+                            <span className='text-[11px] font-semibold text-white'>我的足迹</span>
+                            <span className='mt-1 text-[9px] text-white/75'>点开看旅行地图</span>
+                        </span>
+                        <FootprintStatsView stats={footprint} compact tone='light' />
+                    </div>
                 </div>
             </Card>
         </HomeDraggableLayer>

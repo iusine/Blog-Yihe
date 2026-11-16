@@ -318,3 +318,14 @@ html, body {
 }
 ================================================================================
 */
+
+/* 照片墙：城市到缩略图之间的引导线，虚线缓慢流动 */
+@keyframes photo-wall-dash {
+	to {
+		stroke-dashoffset: -18;
+	}
+}
+.photo-wall-guide {
+	stroke-dasharray: 4 5;
+	animation: photo-wall-dash 2.4s linear infinite;
+}

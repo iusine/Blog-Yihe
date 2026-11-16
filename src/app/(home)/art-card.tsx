@@ -18,10 +18,6 @@ export default function ArtCard() {
     const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x - styles.width / 2
     const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y - hiCardStyles.height / 2 - styles.height - CARD_SPACING
 
-    const artImages = siteContent.artImages ?? []
-    const currentId = siteContent.currentArtImageId
-    const currentArt = (currentId ? artImages.find(item => item.id === currentId) : undefined) ?? artImages[0]
-    const artUrl = currentArt?.url || '/images/art/cat.png'
     const footprint = usePhotoFootprint()
 
     return (
@@ -38,7 +34,13 @@ export default function ArtCard() {
                     </>
                 )}
 
-                <img onClick={() => router.push('/pictures')} src={artUrl} alt='wall art' className='h-full w-full rounded-[32px] object-cover' />
+                {/* 首图固定用 avatar.png：按卡片宽度铺满，上下裁切到这张卡片的比例 */}
+                <img
+                    onClick={() => router.push('/pictures')}
+                    src='/images/avatar.png'
+                    alt='wall art'
+                    className='h-full w-full cursor-pointer rounded-[32px] object-cover object-center'
+                />
 
                 {/* 足迹入口条：底图用 avatar.png，按宽度铺满、上下裁切到这条的比例 */}
                 <div

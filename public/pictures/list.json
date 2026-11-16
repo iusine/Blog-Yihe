@@ -1,5 +1,30 @@
 [
 	{
+		"id": "1b9ddda8d6fd4ee3",
+		"src": "/images/pictures/151e1c7c89974e39.jpg",
+		"title": "修--11",
+		"description": "国庆前爬白云山的“福利”！",
+		"date": "2026-11-16",
+		"location": "白云山",
+		"province": "440000",
+		"city": "440100"
+	},
+	{
+		"id": "84292dee65674869",
+		"src": "/images/pictures/95e5c4141ec06348.jpg",
+		"title": "修--6",
+		"description": "和高中同桌，黄龙坤爬白云山，说实话，有点累。",
+		"tags": [
+			"爬山",
+			"锻炼",
+			"放松心情"
+		],
+		"date": "2026-09-30",
+		"location": "白云山",
+		"province": "440000",
+		"city": "440100"
+	},
+	{
 		"id": "ec9c270635244697",
 		"src": "/images/pictures/e907fad10ac06e1b.jpg",
 		"title": "P_YH4503",

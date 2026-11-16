@@ -19,7 +19,7 @@ type LikeButtonProps = {
 // 现在从 consts 里的 LIKE_API 读取，没配置就完全不发请求，只保留本地点赞动画。
 const ENDPOINT = LIKE_API
 
-export default function LikeButton({ slug = 'yysuni', delay, className }: LikeButtonProps) {
+export default function LikeButton({ slug = 'iusine', delay, className }: LikeButtonProps) {
 	slug = BLOG_SLUG_KEY + slug
 	const [liked, setLiked] = useState(false)
 	const [show, setShow] = useState(false)

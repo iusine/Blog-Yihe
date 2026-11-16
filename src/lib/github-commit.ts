@@ -122,11 +122,15 @@ export async function commitFiles<T = void>(options: CommitFilesOptions<T>): Pro
 
 	// 开发环境：把刚推上去的提交拉回本地，避免「GitHub 有了、本地 public/ 还是旧的」
 	const sync = await syncLocalRepo()
+	const syncedToLocal = sync.ok && !sync.skipped
 
-	toast.success(successMessage)
-	if (sync.ok && !sync.skipped) {
-		if (notifyLocalSync) toast.success('本地仓库已同步')
-	} else if (!sync.skipped) {
+	if (notifyLocalSync) {
+		toast.success(syncedToLocal ? `${successMessage}（本地仓库已同步，刷新页面可见）` : successMessage)
+	} else {
+		toast.success(successMessage)
+	}
+
+	if (!syncedToLocal && !sync.skipped) {
 		toast.warning(`已推送到 GitHub，但本地 git pull 失败：${sync.error ?? '未知原因'}。请手动执行 git pull。`)
 	}
 

@@ -38,6 +38,7 @@ export async function pushBlog(params: PushBlogParams): Promise<void> {
 
 	await commitFiles({
 		message: commitMessage,
+		successMessage: mode === 'edit' ? '更新成功！' : '发布成功！',
 		notifyLocalSync: true,
 		prepare: async ctx => {
 			const allLocalImages: Array<{ img: Extract<ImageItem, { type: 'file' }>; id: string }> = []

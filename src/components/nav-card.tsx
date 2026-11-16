@@ -2,7 +2,7 @@
 'use client'
 
 import Card from '@/components/card'
-import Image from 'next/image'
+import ImageWithFallback from '@/components/image-with-fallback'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
@@ -141,8 +141,10 @@ export default function NavCard() {
 
                     <Link className='flex items-center gap-3' href='/'>
                         {/* [修正] 加上 priority：头像在首屏，Next 会提示 LCP 图片应使用 eager 加载 */}
-                        <Image
+                        {/* [新增] 远程头像加载失败（CDN 返回 octet-stream，优化器 400）时退回本地图 */}
+                        <ImageWithFallback
                             src='https://fastly.jsdelivr.net/gh/iusine/Image-bed/avatar.png'
+                            fallbackSrc='/images/avatar.png'
                             alt='avatar'
                             width={40}
                             height={40}

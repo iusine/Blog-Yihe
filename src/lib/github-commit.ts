@@ -14,7 +14,9 @@ import {
 	type TreeItem
 } from '@/lib/github-client'
 import { fileToBase64NoPrefix, hashFileSHA256 } from '@/lib/file-utils'
-import { getFileExt, getFilenameExtension } from '@/lib/utils'
+import { compressImageFile, MAX_UPLOAD_IMAGE_BYTES } from '@/lib/image-compress'
+import { formatBytes, getFileExt, getFilenameExtension } from '@/lib/utils'
+import { syncLocalRepo } from '@/lib/dev-sync'
 
 export type CommitContext = {
 	token: string
@@ -32,6 +34,8 @@ export type CommitContext = {
 export type CommitFilesOptions<T = void> = {
 	message: string
 	successMessage?: string
+	/** 本地同步成功后是否额外提示一句（发布文章时开启） */
+	notifyLocalSync?: boolean
 	prepare: (ctx: CommitContext) => Promise<{ treeItems: TreeItem[]; result?: T }>
 }
 
@@ -65,7 +69,7 @@ async function resolveBranchHead(token: string, owner: string, repo: string, bra
  * getAuthToken → getRef → prepare tree → createTree → createCommit → updateRef
  */
 export async function commitFiles<T = void>(options: CommitFilesOptions<T>): Promise<T> {
-	const { message, successMessage = '发布成功！', prepare } = options
+	const { message, successMessage = '发布成功！', notifyLocalSync = false, prepare } = options
 	const { OWNER: owner, REPO: repo, BRANCH: branch } = GITHUB_CONFIG
 
 	const token = await getAuthToken()
@@ -116,7 +120,15 @@ export async function commitFiles<T = void>(options: CommitFilesOptions<T>): Pro
 		await createRef(token, owner, repo, `refs/heads/${branch}`, commitData.sha)
 	}
 
+	// 开发环境：把刚推上去的提交拉回本地，避免「GitHub 有了、本地 public/ 还是旧的」
+	const sync = await syncLocalRepo()
+
 	toast.success(successMessage)
+	if (sync.ok && !sync.skipped) {
+		if (notifyLocalSync) toast.success('本地仓库已同步')
+	} else if (!sync.skipped) {
+		toast.warning(`已推送到 GitHub，但本地 git pull 失败：${sync.error ?? '未知原因'}。请手动执行 git pull。`)
+	}
 
 	return result as T
 }
@@ -158,11 +170,36 @@ export async function addHashedFile(
 	}
 }
 
+/**
+ * 上传图片前先压缩：超过 1MB 的压到 1MB 以内（见 lib/image-compress.ts），
+ * 然后按压缩后的字节算 hash、上传，保证仓库里不会出现几十 MB 的原图。
+ */
 export async function addHashedImage(
 	ctx: CommitContext,
 	file: File,
 	publicDir: string,
 	uploadedHashes: Set<string>
 ): Promise<{ publicPath: string; treeItem: TreeItem | null; hash: string }> {
-	return addHashedFile(ctx, file, publicDir, uploadedHashes, { ext: getFileExt(file.name) })
+	let source = file
+	try {
+		const oversized = file.size > MAX_UPLOAD_IMAGE_BYTES
+		if (oversized) toast.info(`正在压缩图片（${formatBytes(file.size)}）…`, { id: 'image-compress' })
+
+		const result = await compressImageFile(file)
+		source = result.file
+
+		if (result.compressed) {
+			toast.success(`图片已压缩：${formatBytes(result.originalSize)} → ${formatBytes(result.size)}`, { id: 'image-compress' })
+		} else if (oversized) {
+			toast.info('这张图片无法进一步压缩，将按原样上传', { id: 'image-compress' })
+		}
+
+		if (result.compressed && result.size > MAX_UPLOAD_IMAGE_BYTES) {
+			toast.warning(`这张图片压到 ${formatBytes(result.size)} 仍超过 1MB，已按最佳效果上传`)
+		}
+	} catch (error) {
+		console.error('Failed to compress image:', error)
+	}
+
+	return addHashedFile(ctx, source, publicDir, uploadedHashes)
 }

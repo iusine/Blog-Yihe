@@ -38,6 +38,7 @@ export async function pushBlog(params: PushBlogParams): Promise<void> {
 
 	await commitFiles({
 		message: commitMessage,
+		notifyLocalSync: true,
 		prepare: async ctx => {
 			const allLocalImages: Array<{ img: Extract<ImageItem, { type: 'file' }>; id: string }> = []
 

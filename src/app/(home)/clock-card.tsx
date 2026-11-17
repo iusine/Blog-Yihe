@@ -75,40 +75,40 @@ export default function ClockCard() {
                     </>
                 )}
 
-                <div className='flex h-full w-full flex-col items-center justify-between gap-1'>
-                    {/* 上：地区（省 + 市） */}
-                    <div className='text-secondary flex w-full items-center justify-center gap-1 text-[11px] leading-none'>
-                        <MapPin className='text-brand h-3 w-3 shrink-0' />
-                        <span className='truncate'>{regionText || (location.loading ? '定位中…' : '位置未知')}</span>
-                    </div>
-
-                    {/* 中：时间 */}
+                {/* 卡片里两个盒子：左边时间，右边地区和天气 */}
+                <div className='flex h-full w-full items-stretch gap-2'>
                     <div
                         onClick={() => {
                             if (!editing) {
                                 router.push('/clock')
                             }
                         }}
-                        className='bg-secondary/20 card-rounded flex w-full cursor-pointer items-center justify-center gap-1.5 px-2 py-1.5'>
-                        <SevenSegmentDigit value={parseInt(hours[0])} />
-                        <SevenSegmentDigit value={parseInt(hours[1])} />
-                        <Colon className='mx-1.5' />
-                        <SevenSegmentDigit value={parseInt(minutes[0])} />
-                        <SevenSegmentDigit value={parseInt(minutes[1])} />
+                        className='bg-secondary/20 card-rounded flex flex-1 cursor-pointer items-center justify-center gap-1 px-2'>
+                        <SevenSegmentDigit value={parseInt(hours[0])} scale={0.8} />
+                        <SevenSegmentDigit value={parseInt(hours[1])} scale={0.8} />
+                        <Colon className='mx-1' />
+                        <SevenSegmentDigit value={parseInt(minutes[0])} scale={0.8} />
+                        <SevenSegmentDigit value={parseInt(minutes[1])} scale={0.8} />
                         {showSeconds && (
                             <>
-                                <Colon className='mx-1.5' />
-                                <SevenSegmentDigit value={parseInt(seconds[0])} />
-                                <SevenSegmentDigit value={parseInt(seconds[1])} />
+                                <Colon className='mx-1' />
+                                <SevenSegmentDigit value={parseInt(seconds[0])} scale={0.8} />
+                                <SevenSegmentDigit value={parseInt(seconds[1])} scale={0.8} />
                             </>
                         )}
                     </div>
 
-                    {/* 下：天气 + 温度 */}
-                    <div className='text-secondary flex w-full items-center justify-center gap-1 text-[11px] leading-none'>
-                        <WeatherIcon code={location.weatherCode} isDay={location.isDay} />
-                        <span>{weatherText || (location.loading ? '加载中…' : '—')}</span>
-                        <span className='text-primary font-medium'>{temperatureText}</span>
+                    <div className='bg-secondary/20 card-rounded flex w-[104px] shrink-0 flex-col items-center justify-center gap-1.5 px-2'>
+                        <div className='text-secondary flex w-full items-center justify-center gap-1 text-[11px] leading-none'>
+                            <MapPin className='text-brand h-3 w-3 shrink-0' />
+                            <span className='truncate'>{regionText || (location.loading ? '定位中…' : '位置未知')}</span>
+                        </div>
+
+                        <div className='text-secondary flex w-full items-center justify-center gap-1 text-[11px] leading-none'>
+                            <WeatherIcon code={location.weatherCode} isDay={location.isDay} />
+                            <span>{weatherText || (location.loading ? '加载中…' : '—')}</span>
+                            <span className='text-primary font-medium'>{temperatureText}</span>
+                        </div>
                     </div>
                 </div>
             </Card>
@@ -119,9 +119,11 @@ export default function ClockCard() {
 interface SevenSegmentDigitProps {
     value: number
     className?: string
+    /** 缩放：1 = 原始 29×52 */
+    scale?: number
 }
 
-function SevenSegmentDigit({ value, className }: SevenSegmentDigitProps) {
+function SevenSegmentDigit({ value, className, scale = 1 }: SevenSegmentDigitProps) {
     const segmentMap = {
         0: [true, true, true, true, true, true, false],
         1: [false, true, true, false, false, false, false],
@@ -137,10 +139,11 @@ function SevenSegmentDigit({ value, className }: SevenSegmentDigitProps) {
 
     const segments = segmentMap[value as keyof typeof segmentMap] || segmentMap[0]
     const activeColor = 'var(--color-primary)'
-    const inactiveColor = 'rgba(255, 255, 255, 0.10)'
+    // 没点亮的段直接不画，只保留亮着的笔画
+    const inactiveColor = 'transparent'
 
     return (
-        <svg width='29' height='52' viewBox='0 0 29 52' fill='none' xmlns='http://www.w3.org/2000/svg' className={className}>
+        <svg width={29 * scale} height={52 * scale} viewBox='0 0 29 52' fill='none' xmlns='http://www.w3.org/2000/svg' className={className}>
             <path
                 d='M4.20248 3.49482C2.82797 2.27303 3.69218 0 5.53121 0H22.6867C24.5522 0 25.4019 2.32821 23.975 3.52982L23.5791 3.86316C23.2186 4.16681 22.7623 4.33333 22.2909 4.33333H5.90621C5.41638 4.33333 4.94359 4.15358 4.57748 3.82815L4.20248 3.49482Z'
                 fill={segments[0] ? activeColor : inactiveColor}

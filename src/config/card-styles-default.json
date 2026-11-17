@@ -17,7 +17,7 @@
 	},
 	"clockCard": {
 		"width": 232,
-		"height": 176,
+		"height": 120,
 		"offset": 92,
 		"order": 4,
 		"offsetX": null,

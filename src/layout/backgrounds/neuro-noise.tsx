@@ -33,6 +33,10 @@ float hash(vec2 p) {
 	return fract(p.x * p.y);
 }
 
+vec2 hash2(vec2 p) {
+	return vec2(hash(p), hash(p + 17.13));
+}
+
 float noise(vec2 p) {
 	vec2 i = floor(p);
 	vec2 f = fract(p);
@@ -51,7 +55,7 @@ float fbm(vec2 p) {
 	float amplitude = 0.5;
 	mat2 rotation = mat2(0.8, 0.6, -0.6, 0.8);
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 4; i++) {
 		value += amplitude * noise(p);
 		p = rotation * p * 2.03;
 		amplitude *= 0.5;
@@ -60,51 +64,84 @@ float fbm(vec2 p) {
 	return value;
 }
 
+// F1 / F2 / F3：最近、次近、第三近的细胞核距离。
+// F2 - F1 小 = 靠近两个细胞的边界；F3 - F1 小 = 三个细胞交汇的节点。
+vec3 voronoi(vec2 p, float t) {
+	vec2 cell = floor(p);
+	vec2 local = fract(p);
+
+	float d1 = 8.0;
+	float d2 = 8.0;
+	float d3 = 8.0;
+
+	for (int y = -1; y <= 1; y++) {
+		for (int x = -1; x <= 1; x++) {
+			vec2 offset = vec2(float(x), float(y));
+			vec2 point = hash2(cell + offset);
+			// 细胞核缓慢游动，边界就会跟着流动
+			point = 0.5 + 0.42 * sin(t + 6.2831 * point);
+
+			vec2 r = offset + point - local;
+			float d = dot(r, r);
+
+			if (d < d1) {
+				d3 = d2;
+				d2 = d1;
+				d1 = d;
+			} else if (d < d2) {
+				d3 = d2;
+				d2 = d;
+			} else if (d < d3) {
+				d3 = d;
+			}
+		}
+	}
+
+	return vec3(sqrt(d1), sqrt(d2), sqrt(d3));
+}
+
 void main() {
 	vec2 uv = gl_FragCoord.xy / uResolution.xy;
 	vec2 p = (gl_FragCoord.xy - 0.5 * uResolution.xy) / min(uResolution.x, uResolution.y);
-	p *= 2.15;
+	p *= 3.4;
 
-	float t = uTime * 0.06;
+	float t = uTime * 0.045;
 
-	// 两次 domain warp，噪声才会像流动的神经组织而不是普通云雾
-	vec2 q = vec2(fbm(p + vec2(0.0, t)), fbm(p + vec2(5.2, 1.3) - t));
-	vec2 r = vec2(
-		fbm(p + 4.0 * q + vec2(1.7, 9.2) + t * 0.5),
-		fbm(p + 4.0 * q + vec2(8.3, 2.8) - t * 0.4)
-	);
-	float f = fbm(p + 4.0 * r);
+	// 先用低频噪声揉一下坐标，细胞边界才会像神经纤维一样弯曲
+	vec2 warp = vec2(fbm(p * 1.3 + vec2(0.0, t)), fbm(p * 1.3 + vec2(4.7, 1.3) - t));
+	vec2 q = p + 0.6 * warp;
 
-	// 细的发光脉络
-	float veins = 1.0 - smoothstep(0.0, 0.42, abs(f - 0.5));
+	vec3 v = voronoi(q, uTime * 0.16);
 
-	vec3 base = vec3(0.016, 0.024, 0.047);
-	vec3 teal = vec3(0.10, 0.62, 0.76);
-	vec3 indigo = vec3(0.16, 0.30, 0.80);
-	vec3 violet = vec3(0.46, 0.20, 0.82);
-	vec3 magenta = vec3(0.62, 0.16, 0.46);
+	float edgeDistance = v.y - v.x;
+	float edge = 1.0 - smoothstep(0.0, 0.07, edgeDistance);
+	float halo = exp(-edgeDistance * 8.0);
+	float node = 1.0 - smoothstep(0.0, 0.05, v.z - v.x);
+
+	vec3 base = vec3(0.003, 0.008, 0.02);
+	vec3 glowBlue = vec3(0.10, 0.36, 1.0);
+	vec3 liftBlue = vec3(0.38, 0.66, 1.0);
+	vec3 core = vec3(0.93, 0.97, 1.0);
 
 	vec3 color = base;
-	color += teal * smoothstep(0.20, 0.80, f) * 0.40;
-	color += indigo * (1.0 - smoothstep(0.0, 0.95, length(q))) * 0.55;
-	color += violet * r.x * 0.42;
-	color += magenta * smoothstep(0.55, 0.95, q.x) * 0.16;
-	color += mix(teal, violet, q.y) * veins * 0.26;
+	color += glowBlue * halo * 0.32;
+	color += glowBlue * pow(edge, 2.0) * 1.15;
+	color += liftBlue * pow(edge, 5.0) * 0.75;
+	color += core * pow(node, 4.0) * 1.0;
+
+	// 大尺度明暗，避免整屏亮度完全一致
+	color *= 0.7 + 0.55 * smoothstep(0.15, 0.9, fbm(p * 0.55 + t * 0.5));
 
 	// 暗角：四周压下去，中间的玻璃卡片更突出
-	float vignette = smoothstep(0.32, 0.98, length((uv - 0.5) * vec2(1.06, 1.0)));
-	color *= 1.0 - 0.58 * vignette;
-
-	// 整体压一档，保证白字在卡片上的对比度（最亮处也留在 40% 亮度左右）
-	color *= 0.86;
+	float vignette = smoothstep(0.35, 1.05, length((uv - 0.5) * vec2(1.05, 1.0)));
+	color *= 1.0 - 0.32 * vignette;
 
 	// 轻微颗粒，避免深色区域出现色带
-	color += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) * 0.012;
+	color += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) * 0.01;
 
-	gl_FragColor = vec4(color, 1.0);
+	gl_FragColor = vec4(min(color, vec3(1.0)), 1.0);
 }
 `
-
 function createShader(gl: WebGLRenderingContext, type: number, source: string) {
 	const shader = gl.createShader(type)
 	if (!shader) return null
@@ -251,6 +288,42 @@ export default function NeuroNoiseBackground() {
 					pixel
 				)
 				return Array.from(pixel)
+			}
+
+			// 把当前画面压成 ASCII 缩略图，便于在终端里直接看纹理结构
+			;(window as any).__neuroNoiseAscii = (cols = 90, rows = 34) => {
+				draw(elapsed || 0)
+				const width = canvas.width
+				const height = canvas.height
+				const pixels = new Uint8Array(width * height * 4)
+				gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+
+				const ramp = ' .:-=+*#%@'
+				const lines: string[] = []
+				for (let row = 0; row < rows; row++) {
+					let line = ''
+					for (let col = 0; col < cols; col++) {
+						const x0 = Math.floor((col / cols) * width)
+						const x1 = Math.max(x0 + 1, Math.floor(((col + 1) / cols) * width))
+						// 图像坐标上下翻转
+						const y0 = Math.floor(((rows - 1 - row) / rows) * height)
+						const y1 = Math.max(y0 + 1, Math.floor(((rows - row) / rows) * height))
+
+						let sum = 0
+						let count = 0
+						for (let y = y0; y < y1; y += 3) {
+							for (let x = x0; x < x1; x += 3) {
+								const i = (y * width + x) * 4
+								sum += 0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]
+								count++
+							}
+						}
+						const lum = count ? sum / count : 0
+						line += ramp[Math.min(ramp.length - 1, Math.floor((lum / 255) * ramp.length))]
+					}
+					lines.push(line)
+				}
+				return lines.join('\n')
 			}
 		}
 

@@ -114,11 +114,12 @@ export default function CalendarCard() {
                                     title={`查看 ${dateKey} 黄历`}
                                     className={cn(
                                         'flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-lg leading-none transition-colors hover:bg-brand/10',
-                                        isToday && 'bg-linear border font-medium'
+                                        // 今天：亮底 + 深色数字 + 白色描边和高光，在玻璃卡片上也能一眼看到
+                                        isToday && 'bg-brand font-semibold text-[#04121f] ring-2 ring-white/80 shadow-[0_0_16px_-2px_rgba(125,211,252,0.9)]'
                                     )}>
                                     <span className={cn('text-[13px]', compact && 'text-xs')}>{day}</span>
                                     {!compact && (
-                                        <span className={cn('mt-[3px] text-[9px] tracking-tight', isToday ? 'text-white/90' : 'text-secondary/60')}>
+                                        <span className={cn('mt-[3px] text-[9px] tracking-tight', isToday ? 'font-medium text-[#04121f]/75' : 'text-secondary/60')}>
                                             {lunarDay?.day ?? ''}
                                         </span>
                                     )}

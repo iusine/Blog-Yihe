@@ -19,6 +19,7 @@
     "#0e74904d",
     "#6d28d94d"
   ],
+  "backgroundEffect": "neuro-noise",
   "artImages": [
     {
       "id": "cat",

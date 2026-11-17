@@ -3,6 +3,7 @@
 import { PropsWithChildren } from 'react'
 import { useCenterInit } from '@/hooks/use-center'
 import BlurredBubblesBackground from './backgrounds/blurred-bubbles'
+import NeuroNoiseBackground from './backgrounds/neuro-noise'
 import NavCard from '@/components/nav-card'
 import { Toaster } from 'sonner'
 import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon } from 'lucide-react'
@@ -21,6 +22,8 @@ export default function Layout({ children }: PropsWithChildren) {
     const currentBackgroundImageId = siteContent.currentBackgroundImageId
     const currentBackgroundImage =
         currentBackgroundImageId && currentBackgroundImageId.trim() ? backgroundImages.find(item => item.id === currentBackgroundImageId) : null
+    // 'neuro-noise'（默认，WebGL 流动噪声）| 'bubbles'（原来的模糊光斑）| 'none'
+    const backgroundEffect = (siteContent as { backgroundEffect?: string }).backgroundEffect ?? 'neuro-noise'
 
     return (
         <>
@@ -52,7 +55,8 @@ export default function Layout({ children }: PropsWithChildren) {
                     }}
                 />
             )}
-            <BlurredBubblesBackground colors={siteContent.backgroundColors} regenerateKey={regenerateKey} />
+            {backgroundEffect === 'bubbles' && <BlurredBubblesBackground colors={siteContent.backgroundColors} regenerateKey={regenerateKey} />}
+            {backgroundEffect === 'neuro-noise' && <NeuroNoiseBackground />}
 
             <main className='relative z-10 h-full'>
                 {children}

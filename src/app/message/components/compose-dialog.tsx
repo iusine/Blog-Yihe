@@ -137,13 +137,13 @@ export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: 
 						onChange={event => setAuthor(event.target.value)}
 						placeholder={anonymous ? '匿名留言' : '留言者（必填）'}
 						maxLength={40}
-						className='flex-1 rounded-lg border bg-white px-3 py-2 text-sm focus:ring-1 focus:ring-[#2fcbe7] focus:outline-none disabled:bg-black/5 disabled:text-gray-400'
+						className='flex-1 rounded-lg border bg-white/10 px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-black/5 disabled:text-white/50'
 					/>
 					<button
 						type='button'
 						onClick={() => setAnonymous(value => !value)}
 						className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition-colors ${
-							anonymous ? 'border-[#2fcbe7] bg-[#2fcbe7]/10 text-[#4a3431]' : 'bg-white text-gray-500 hover:bg-gray-50'
+							anonymous ? 'border-white/30 bg-white/10 text-white/90' : 'bg-white/10 text-white/60 hover:bg-white/15'
 						}`}>
 						<UserX className='h-3.5 w-3.5' />
 						匿名
@@ -156,7 +156,7 @@ export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: 
 						onChange={event => setContent(event.target.value.slice(0, limit))}
 						rows={sendToOther ? 8 : 4}
 						placeholder={sendToOther ? '想托一禾转达的话（最多 2000 字）…' : '想说的话（最多 100 字）…'}
-						className='w-full resize-none rounded-lg border bg-white px-3 py-2 text-sm leading-relaxed focus:ring-1 focus:ring-[#2fcbe7] focus:outline-none'
+						className='w-full resize-none rounded-lg border bg-white/10 px-3 py-2 text-sm leading-relaxed focus:ring-1 focus:ring-brand focus:outline-none'
 					/>
 					<div className={`mt-1 text-right text-[11px] ${remaining < 10 ? 'text-red-400' : 'text-secondary'}`}>
 						{content.length} / {limit}
@@ -165,7 +165,7 @@ export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: 
 
 				<label
 					className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 transition-colors ${
-						encryptReady ? 'bg-white hover:bg-[#2fcbe7]/5' : 'cursor-not-allowed bg-black/[0.03] opacity-70'
+						encryptReady ? 'bg-white/10 hover:bg-white/[0.06]' : 'cursor-not-allowed bg-black/[0.03] opacity-70'
 					}`}>
 					<input
 						type='checkbox'
@@ -191,13 +191,13 @@ export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: 
 						value={deliverEmail}
 						onChange={event => setDeliverEmail(event.target.value)}
 						placeholder='对方邮箱（必填）'
-						className='w-full rounded-lg border bg-white px-3 py-2 text-sm focus:ring-1 focus:ring-[#2fcbe7] focus:outline-none'
+						className='w-full rounded-lg border bg-white/10 px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:outline-none'
 					/>
 				)}
 
 				<label
 					className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 transition-colors ${
-						encryptReady ? 'bg-white hover:bg-[#2fcbe7]/5' : 'cursor-not-allowed bg-black/[0.03] opacity-70'
+						encryptReady ? 'bg-white/10 hover:bg-white/[0.06]' : 'cursor-not-allowed bg-black/[0.03] opacity-70'
 					}`}>
 					<input type='checkbox' checked={ownerOnly} disabled={!encryptReady} onChange={event => setOwnerOnly(event.target.checked)} className='mt-0.5' />
 					<span className='flex-1'>
@@ -215,7 +215,7 @@ export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: 
 			</div>
 
 			<div className='mt-5 flex gap-3'>
-				<button type='button' onClick={onClose} disabled={saving} className='flex-1 rounded-lg border bg-white px-4 py-2 text-sm transition-colors hover:bg-gray-50'>
+				<button type='button' onClick={onClose} disabled={saving} className='flex-1 rounded-lg border bg-white/10 px-4 py-2 text-sm transition-colors hover:bg-white/15'>
 					取消
 				</button>
 				<button type='button' onClick={handleSubmit} disabled={saving} className='brand-btn flex-1 justify-center rounded-lg px-4 py-2 text-sm disabled:opacity-60'>

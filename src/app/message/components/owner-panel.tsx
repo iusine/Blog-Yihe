@@ -39,27 +39,27 @@ export default function OwnerPanel({ entries, onClose }: Props) {
 				{pending.length === 0 && <p className='text-secondary rounded-xl border border-dashed p-4 text-center text-xs'>暂无待代发的留言</p>}
 
 				{pending.map(entry => (
-					<div key={entry.id} className='rounded-xl border bg-[#fffaf0] p-3'>
-						<div className='flex flex-wrap items-center gap-2 text-[11px] text-[#8b7667]'>
-							<span className='font-medium text-[#5B423F]'>{entry.anonymous ? '匿名' : entry.author || '访客'}</span>
+					<div key={entry.id} className='rounded-xl border bg-white/[0.06] p-3'>
+						<div className='flex flex-wrap items-center gap-2 text-[11px] text-white/60'>
+							<span className='font-medium text-white'>{entry.anonymous ? '匿名' : entry.author || '访客'}</span>
 							<span>{entry.createdAt.replace('T', ' ').slice(0, 16)}</span>
-							{entry.ownerOnly && <span className='rounded-full bg-[#5B423F]/8 px-1.5 py-0.5'>仅站主</span>}
+							{entry.ownerOnly && <span className='rounded-full bg-white/10 px-1.5 py-0.5'>仅站主</span>}
 							<span className='ml-auto flex items-center gap-1'>
 								<Mail className='h-3 w-3' />
 								{entry.deliverEmail}
 							</span>
 						</div>
 
-						<p className='mt-2 line-clamp-3 text-[13px] leading-relaxed whitespace-pre-wrap text-[#4a3431]'>{entry.content}</p>
+						<p className='mt-2 line-clamp-3 text-[13px] leading-relaxed whitespace-pre-wrap text-white/90'>{entry.content}</p>
 
 						<div className='mt-2 flex flex-wrap gap-2'>
-							<button type='button' onClick={() => copy(entry)} className='flex items-center gap-1 rounded-lg border bg-white px-3 py-1.5 text-xs hover:bg-gray-50'>
+							<button type='button' onClick={() => copy(entry)} className='flex items-center gap-1 rounded-lg border bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15'>
 								<Copy className='h-3 w-3' />
 								复制代发内容
 							</button>
 							<a
 								href={`mailto:${entry.deliverEmail}?subject=${encodeURIComponent('来自留言墙的一封信')}&body=${encodeURIComponent(buildMailBody(entry))}`}
-								className='flex items-center gap-1 rounded-lg border bg-white px-3 py-1.5 text-xs hover:bg-gray-50'>
+								className='flex items-center gap-1 rounded-lg border bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15'>
 								<Mail className='h-3 w-3' />
 								直接发送
 							</a>
@@ -70,15 +70,15 @@ export default function OwnerPanel({ entries, onClose }: Props) {
 
 			{privateOnes.length > 0 && (
 				<>
-					<h3 className='mt-6 text-sm font-semibold text-[#5B423F]'>仅站主可见</h3>
+					<h3 className='mt-6 text-sm font-semibold text-white'>仅站主可见</h3>
 					<div className='mt-2 space-y-2'>
 						{privateOnes.map(entry => (
-							<div key={entry.id} className='rounded-xl border bg-white p-3'>
-								<div className='flex items-center gap-2 text-[11px] text-[#8b7667]'>
-									<span className='font-medium text-[#5B423F]'>{entry.anonymous ? '匿名' : entry.author || '访客'}</span>
+							<div key={entry.id} className='rounded-xl border bg-white/10 p-3'>
+								<div className='flex items-center gap-2 text-[11px] text-white/60'>
+									<span className='font-medium text-white'>{entry.anonymous ? '匿名' : entry.author || '访客'}</span>
 									<span>{entry.createdAt.replace('T', ' ').slice(0, 16)}</span>
 								</div>
-								<p className='mt-1 line-clamp-3 text-[13px] leading-relaxed whitespace-pre-wrap text-[#4a3431]'>{entry.content}</p>
+								<p className='mt-1 line-clamp-3 text-[13px] leading-relaxed whitespace-pre-wrap text-white/90'>{entry.content}</p>
 							</div>
 						))}
 					</div>

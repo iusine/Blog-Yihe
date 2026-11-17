@@ -91,7 +91,7 @@ export default function MessageWall({ items, onOpen }: Props) {
 			{items.length === 0 && (
 				<div className='flex h-full flex-col items-center justify-center gap-3 text-center'>
 					<div className='text-5xl'>📮</div>
-					<p className='text-lg font-medium text-[#5B423F]'>留言墙还是空的</p>
+					<p className='text-lg font-medium text-white'>留言墙还是空的</p>
 					<p className='text-secondary max-w-xs text-xs leading-relaxed'>点右下角的「写留言」，留下你的第一条足迹吧。</p>
 				</div>
 			)}
@@ -118,15 +118,15 @@ export default function MessageWall({ items, onOpen }: Props) {
 						}}>
 						<div
 							className={`relative rounded-[6px] border p-3 pb-6 shadow-[0_16px_30px_-18px_rgba(60,40,30,0.55)] transition-shadow hover:shadow-[0_22px_38px_-18px_rgba(60,40,30,0.6)] ${
-								item.ownerOnly ? 'border-[#c9b8a4] bg-[#fffaf0]' : 'border-[#efe6d8] bg-[#fffdf7]'
+								item.ownerOnly ? 'border-white/20 bg-white/[0.06]' : 'border-white/15 bg-white/[0.07]'
 							}`}>
 							{/* 胶带 */}
-							<span className='absolute -top-2 left-1/2 h-4 w-14 -translate-x-1/2 rotate-[-2deg] rounded-[2px] bg-[#2fcbe7]/25' />
+							<span className='absolute -top-2 left-1/2 h-4 w-14 -translate-x-1/2 rotate-[-2deg] rounded-[2px] bg-white/15' />
 
-							<div className='flex items-center gap-1.5 text-[10px] text-[#8b7667]'>
+							<div className='flex items-center gap-1.5 text-[10px] text-white/60'>
 								<span className='truncate font-medium'>{item.anonymous ? '匿名' : item.author || '访客'}</span>
 								{item.ownerOnly && (
-									<span className='flex items-center gap-0.5 rounded-full bg-[#5B423F]/8 px-1.5 py-0.5'>
+									<span className='flex items-center gap-0.5 rounded-full bg-white/10 px-1.5 py-0.5'>
 										<Lock className='h-2.5 w-2.5' />
 										仅站主
 									</span>
@@ -135,7 +135,7 @@ export default function MessageWall({ items, onOpen }: Props) {
 								<span className='ml-auto shrink-0'>{item.createdAt.slice(0, 10)}</span>
 							</div>
 
-							<p className='mt-2 line-clamp-5 text-[13px] leading-relaxed break-words whitespace-pre-wrap text-[#4a3431]'>{item.content}</p>
+							<p className='mt-2 line-clamp-5 text-[13px] leading-relaxed break-words whitespace-pre-wrap text-white/90'>{item.content}</p>
 						</div>
 					</div>
 				)
@@ -149,7 +149,7 @@ export default function MessageWall({ items, onOpen }: Props) {
 							setPositions({})
 							setSalt(value => value + 1)
 						}}
-						className='bg-card rounded-xl border px-3 py-2 text-xs backdrop-blur-sm transition-colors hover:bg-white/80'>
+						className='bg-card rounded-xl border px-3 py-2 text-xs backdrop-blur-sm transition-colors hover:bg-white/20'>
 						重新散落
 					</button>
 				</div>

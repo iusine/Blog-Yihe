@@ -68,7 +68,7 @@ export default function PhotoEditDialog({ photo, cityName, onClose, onSave }: Pr
 						value={title}
 						onChange={event => setTitle(event.target.value)}
 						placeholder='给这张照片起个名字'
-						className='w-full rounded-lg border bg-white px-3 py-2 text-sm focus:ring-1 focus:ring-[#2fcbe7] focus:outline-none'
+						className='w-full rounded-lg border bg-white/10 px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:outline-none'
 					/>
 				</label>
 
@@ -79,7 +79,7 @@ export default function PhotoEditDialog({ photo, cityName, onClose, onSave }: Pr
 							type='date'
 							value={date}
 							onChange={event => setDate(event.target.value)}
-							className='w-full rounded-lg border bg-white px-3 py-2 text-sm text-[#5B423F]'
+							className='w-full rounded-lg border bg-white/10 px-3 py-2 text-sm text-white'
 						/>
 					</label>
 
@@ -89,7 +89,7 @@ export default function PhotoEditDialog({ photo, cityName, onClose, onSave }: Pr
 							value={location}
 							onChange={event => setLocation(event.target.value)}
 							placeholder='如 白云山'
-							className='w-full rounded-lg border bg-white px-3 py-2 text-sm focus:ring-1 focus:ring-[#2fcbe7] focus:outline-none'
+							className='w-full rounded-lg border bg-white/10 px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:outline-none'
 						/>
 					</label>
 				</div>
@@ -101,7 +101,7 @@ export default function PhotoEditDialog({ photo, cityName, onClose, onSave }: Pr
 						onChange={event => setDescription(event.target.value)}
 						rows={4}
 						placeholder='这张照片背后的故事…'
-						className='w-full resize-none rounded-lg border bg-white px-3 py-2 text-sm focus:ring-1 focus:ring-[#2fcbe7] focus:outline-none'
+						className='w-full resize-none rounded-lg border bg-white/10 px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:outline-none'
 					/>
 				</label>
 
@@ -111,13 +111,13 @@ export default function PhotoEditDialog({ photo, cityName, onClose, onSave }: Pr
 						value={tagsInput}
 						onChange={event => setTagsInput(event.target.value)}
 						placeholder='旅行, 夜景'
-						className='w-full rounded-lg border bg-white px-3 py-2 text-sm focus:ring-1 focus:ring-[#2fcbe7] focus:outline-none'
+						className='w-full rounded-lg border bg-white/10 px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:outline-none'
 					/>
 				</label>
 			</div>
 
 			<div className='mt-5 flex gap-3'>
-				<button type='button' onClick={onClose} disabled={saving} className='flex-1 rounded-lg border bg-white px-4 py-2 text-sm transition-colors hover:bg-gray-50'>
+				<button type='button' onClick={onClose} disabled={saving} className='flex-1 rounded-lg border bg-white/10 px-4 py-2 text-sm transition-colors hover:bg-white/15'>
 					取消
 				</button>
 				<button type='button' onClick={handleSubmit} disabled={saving} className='brand-btn flex-1 justify-center rounded-lg px-4 py-2 text-sm disabled:opacity-60'>

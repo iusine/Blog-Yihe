@@ -192,7 +192,7 @@ export default function Page() {
 			<div className='pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center px-4 sm:top-6'>
 				<div className='pointer-events-auto flex items-center gap-3 rounded-2xl border bg-card/85 px-5 py-2.5 shadow-[0_18px_30px_-24px_rgba(70,45,30,0.45)] backdrop-blur-md'>
 					<div className='flex flex-col'>
-						<h1 className='text-[15px] leading-none font-semibold text-[#5B423F]'>留言墙</h1>
+						<h1 className='text-[15px] leading-none font-semibold text-white'>留言墙</h1>
 						<p className='text-secondary mt-1.5 text-[10px]'>
 							{loading ? '正在加载…' : `共 ${wallItems.length} 条足迹 · 拖动可以重新摆放`}
 						</p>
@@ -200,12 +200,12 @@ export default function Page() {
 
 					{isAuth && (
 						<>
-							<span className='h-7 w-px bg-[#5B423F]/12' />
-							<button type='button' onClick={() => setPanelOpen(true)} className='flex items-center gap-1 text-[11px] text-[#5B423F] hover:opacity-70'>
+							<span className='h-7 w-px bg-white/15' />
+							<button type='button' onClick={() => setPanelOpen(true)} className='flex items-center gap-1 text-[11px] text-white hover:opacity-70'>
 								<Settings2 className='h-3.5 w-3.5' />
 								站主面板
 								{ownerEntries.length > 0 && (
-									<span className='rounded-full bg-[#2fcbe7]/25 px-1.5 py-0.5 text-[10px]'>{ownerEntries.length}</span>
+									<span className='rounded-full bg-white/15 px-1.5 py-0.5 text-[10px]'>{ownerEntries.length}</span>
 								)}
 							</button>
 						</>
@@ -225,7 +225,7 @@ export default function Page() {
 						type='button'
 						onClick={publishPublicKey}
 						disabled={publishing}
-						className='flex items-center gap-1.5 rounded-xl border bg-white/85 px-3 py-2 text-[11px] text-[#5B423F] shadow backdrop-blur transition-colors hover:bg-white disabled:opacity-60'>
+						className='flex items-center gap-1.5 rounded-xl border bg-white/12 px-3 py-2 text-[11px] text-white shadow backdrop-blur transition-colors hover:bg-white/20 disabled:opacity-60'>
 						<KeyRound className='h-3.5 w-3.5' />
 						{publishing ? '发布中…' : '发布站主公钥（开启代发/仅站主）'}
 					</button>
@@ -248,7 +248,7 @@ export default function Page() {
 						<button
 							type='button'
 							onClick={() => requireAuth(() => setPanelOpen(true))}
-							className='text-secondary flex items-center gap-1 text-[11px] transition-colors hover:text-[#5B423F]'>
+							className='text-secondary flex items-center gap-1 text-[11px] transition-colors hover:text-white'>
 							<KeyRound className='h-3 w-3' />
 							站主？导入密钥
 						</button>

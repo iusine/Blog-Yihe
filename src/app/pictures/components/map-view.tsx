@@ -434,7 +434,7 @@ export default function MapView({
 				{(province ? cityLabels : provinceLabels).map(label => (
 					<span
 						key={label.key}
-						className='absolute whitespace-nowrap text-[#4a3431]'
+						className='absolute whitespace-nowrap text-[#3a2b28]'
 						style={{
 							left: `calc(50% + ${label.left}px)`,
 							top: `calc(50% + ${label.top}px)`,
@@ -452,7 +452,7 @@ export default function MapView({
 			{/* 悬浮提示 */}
 			{tooltip && (
 				<div
-					className='pointer-events-none fixed z-50 rounded-lg bg-[#5B423F] px-2.5 py-1 text-xs text-white/95 shadow-lg'
+					className='pointer-events-none fixed z-50 rounded-lg border border-white/15 bg-[#0b1220]/90 px-2.5 py-1 text-xs text-white shadow-lg backdrop-blur-md'
 					style={{ left: tooltip.x + 14, top: tooltip.y + 12 }}>
 					{tooltip.name}
 				</div>
@@ -463,28 +463,28 @@ export default function MapView({
 				<button
 					type='button'
 					onClick={() => zoomBy(1.35)}
-					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/80'
+					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20'
 					aria-label='放大'>
 					<Plus className='h-4 w-4' />
 				</button>
 				<button
 					type='button'
 					onClick={() => zoomBy(0.74)}
-					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/80'
+					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20'
 					aria-label='缩小'>
 					<Minus className='h-4 w-4' />
 				</button>
 				<button
 					type='button'
 					onClick={onReset}
-					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/80'
+					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20'
 					aria-label='回到全国'>
 					<RefreshCcw className='h-3.5 w-3.5' />
 				</button>
 			</div>
 
 			{loadingCities && (
-				<div className='absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-white/80 px-4 py-1.5 text-xs text-[#5B423F] shadow backdrop-blur'>
+				<div className='absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-white/12 px-4 py-1.5 text-xs text-white shadow backdrop-blur'>
 					正在加载省市地图…
 				</div>
 			)}

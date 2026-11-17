@@ -184,26 +184,26 @@ export default function Page() {
 			<div className='pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center px-4 sm:top-6'>
 				<div className='pointer-events-auto flex items-center gap-4 rounded-2xl border bg-card/85 px-5 py-2.5 shadow-[0_18px_30px_-24px_rgba(70,45,30,0.45)] backdrop-blur-md'>
 					<div className='flex flex-col justify-center'>
-						<h1 className='text-[13px] leading-none font-semibold text-[#5B423F]'>我的足迹</h1>
+						<h1 className='text-[13px] leading-none font-semibold text-white'>我的足迹</h1>
 
 						{province ? (
 							<div className='mt-1.5 flex items-center gap-1 text-[10px]'>
 								<button
 									type='button'
 									onClick={resetToChina}
-									className='text-secondary inline-flex items-center gap-0.5 transition-colors hover:text-[#5B423F]'>
+									className='text-secondary inline-flex items-center gap-0.5 transition-colors hover:text-white'>
 									<ChevronLeft className='h-3 w-3' />
 									中国
 								</button>
 								<span className='text-secondary/50'>/</span>
-								<span className='text-[#5B423F]'>{nameOf(province)}</span>
+								<span className='text-white'>{nameOf(province)}</span>
 							</div>
 						) : (
 							<p className='text-secondary mt-1.5 text-[10px]'>点省份进入 · 滚轮缩放 · 拖动平移</p>
 						)}
 					</div>
 
-					<span className='h-9 w-px bg-[#5B423F]/12' />
+					<span className='h-9 w-px bg-white/15' />
 
 					<FootprintStatsView stats={footprint} />
 				</div>

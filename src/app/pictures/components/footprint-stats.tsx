@@ -26,7 +26,7 @@ export default function FootprintStatsView({ stats, compact = false, tone = 'def
 					<span
 						className={[
 							compact ? 'text-[13px] leading-none font-semibold' : 'text-[17px] leading-none font-semibold',
-							light ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]' : 'text-[#5B423F]'
+							light ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]' : 'text-white'
 						].join(' ')}>
 						{item.value}
 					</span>

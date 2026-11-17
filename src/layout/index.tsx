@@ -26,6 +26,7 @@ export default function Layout({ children }: PropsWithChildren) {
         <>
             <Toaster
                 position='bottom-right'
+                theme='dark'
                 richColors
                 icons={{
                     success: <CircleCheckIcon className='size-4' />,

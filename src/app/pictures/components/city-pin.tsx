@@ -29,7 +29,7 @@ export default function CityPin({ x, y, scale, name, photos, onOpen }: CityPinPr
 						className={
 							hasPhotos
 								? 'h-3.5 w-3.5 rounded-full border-2 border-white bg-[#2fcbe7] shadow-[0_0_0_5px_rgba(47,203,231,0.2),0_2px_6px_rgba(0,0,0,0.25)] transition-transform duration-200 hover:scale-125'
-								: 'h-2 w-2 rounded-full border border-white bg-[#8b7667]/60 transition-transform duration-200 hover:scale-150'
+								: 'h-2 w-2 rounded-full border border-white bg-white/40 transition-transform duration-200 hover:scale-150'
 						}
 					/>
 				</button>

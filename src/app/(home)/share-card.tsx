@@ -57,7 +57,7 @@ export default function ShareCard() {
                     rel='noreferrer'
                     title={randomItem.name}
                     className='flex min-w-0 items-center gap-3 transition-opacity hover:opacity-80'>
-                    <span className='relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border bg-white/60 p-1'>
+                    <span className='relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border bg-white/10 p-1'>
                         <img src={randomItem.logo} alt={randomItem.name} className='h-full w-full object-contain' />
                     </span>
 

@@ -21,7 +21,7 @@ export default function PhotoInfoDialog({ photo, cityName, onClose, onEdit }: Pr
 				</div>
 
 				<div className='w-full shrink-0 overflow-y-auto p-6 md:w-[320px]'>
-					<h2 className='text-xl leading-snug font-semibold text-[#5B423F]'>{photo.title}</h2>
+					<h2 className='text-xl leading-snug font-semibold text-white'>{photo.title}</h2>
 
 					<div className='text-secondary mt-2 space-y-1 text-xs'>
 						<p>📅 {photo.date}</p>
@@ -30,13 +30,13 @@ export default function PhotoInfoDialog({ photo, cityName, onClose, onEdit }: Pr
 					</div>
 
 					{photo.description && (
-						<p className='mt-4 text-sm leading-relaxed whitespace-pre-wrap text-[#5B423F]/85'>{photo.description}</p>
+						<p className='mt-4 text-sm leading-relaxed whitespace-pre-wrap text-white/85'>{photo.description}</p>
 					)}
 
 					{photo.tags && photo.tags.length > 0 && (
 						<div className='mt-4 flex flex-wrap gap-1.5'>
 							{photo.tags.map(tag => (
-								<span key={tag} className='rounded-full bg-[#5B423F]/8 px-2.5 py-0.5 text-[11px] text-[#5B423F]'>
+								<span key={tag} className='rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] text-white'>
 									#{tag}
 								</span>
 							))}
@@ -48,7 +48,7 @@ export default function PhotoInfoDialog({ photo, cityName, onClose, onEdit }: Pr
 							<button
 								type='button'
 								onClick={onEdit}
-								className='bg-card flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-4 py-2 text-sm transition-colors hover:bg-white'>
+								className='bg-card flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-4 py-2 text-sm transition-colors hover:bg-white/20'>
 								<Pencil className='h-3.5 w-3.5' />
 								修改信息
 							</button>

@@ -60,7 +60,7 @@ export function AttachmentsSection({ delay = 0 }: AttachmentsSectionProps) {
 									<span className='min-w-0 flex-1 truncate'>{name}</span>
 								)}
 								{typeof size === 'number' && size > 0 && <span className='text-secondary shrink-0 text-xs'>{formatBytes(size)}</span>}
-								<button type='button' className='shrink-0 rounded-md px-1.5 py-0.5 text-xs hover:bg-white/80' onClick={() => deleteAttachment(item.id)}>
+								<button type='button' className='shrink-0 rounded-md px-1.5 py-0.5 text-xs hover:bg-white/20' onClick={() => deleteAttachment(item.id)}>
 									删除
 								</button>
 							</li>

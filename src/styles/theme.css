@@ -1,13 +1,13 @@
 /*主题变量及主题相关规则*/
 @theme {
-    --color-primary: #334f52;
-    --color-secondary: #7b888e;
-    --color-brand-secondary: #1fc9e7;
-    --color-bg: #eeeeee;
-    --color-border: #fff;
-    --color-brand: #35bfab;
-    --color-card: #ffffff66;
-    --color-article: #ffffffcc;
+    --color-primary: #ffffff;
+    --color-secondary: rgba(255, 255, 255, 0.7);
+    --color-brand-secondary: #a5f3fc;
+    --color-bg: #0b1220;
+    --color-border: rgba(255, 255, 255, 0.16);
+    --color-brand: #7dd3fc;
+    --color-card: rgba(255, 255, 255, 0.07);
+    --color-article: rgba(255, 255, 255, 0.05);
 
     --font-averia: 'Averia Gruesa Libre', sans-serif;
     --font-sans:

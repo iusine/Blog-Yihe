@@ -39,11 +39,11 @@ export default function HiCard() {
 
                     <span className='text-secondary mt-1 text-sm'>{greeting}</span>
 
-                    <p className='mt-2 max-w-[260px] text-[15px] leading-relaxed text-[#5B423F]'>
+                    <p className='mt-2 max-w-[260px] text-[15px] leading-relaxed text-white'>
                         我是<span className='text-linear text-[22px]'>一禾</span>，欢迎来到我的网站，可以留下你的足迹。
                     </p>
 
-                    <span className='text-secondary mt-2 text-[11px] transition-colors hover:text-[#5B423F]'>点这里进入留言墙 →</span>
+                    <span className='text-secondary mt-2 text-[11px] transition-colors hover:text-white'>点这里进入留言墙 →</span>
                 </Link>
             </Card>
         </HomeDraggableLayer>

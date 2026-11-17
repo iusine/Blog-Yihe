@@ -90,7 +90,7 @@ function DateToolbar({ dateStr, almanac, onSelect }: { dateStr: string; almanac:
 
 	return (
 		<div className='mt-5 flex justify-center'>
-			<div className='flex items-center gap-0.5 rounded-2xl border bg-white/85 p-1 shadow-[0_18px_36px_-28px_rgba(0,0,0,0.45)] backdrop-blur-md'>
+			<div className='flex items-center gap-0.5 rounded-2xl border bg-white/12 p-1 shadow-[0_18px_36px_-28px_rgba(0,0,0,0.45)] backdrop-blur-md'>
 				<ToolbarIcon label='前一天' onClick={() => onSelect(shiftDateStr(dateStr, -1))}>
 					<ChevronLeft className='size-4' />
 				</ToolbarIcon>
@@ -167,7 +167,7 @@ function DatePicker({ value, onSelect, onClose }: { value: string; onSelect: (ne
 		<div
 			role='dialog'
 			aria-label='选择日期'
-			className='absolute top-full left-1/2 z-50 mt-2 w-[318px] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-2xl border bg-white p-3 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.35)]'>
+			className='absolute top-full left-1/2 z-50 mt-2 w-[318px] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-2xl border bg-white/10 p-3 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.35)]'>
 			<div className='flex items-center justify-between'>
 				<div className='flex items-center'>
 					<ToolbarIcon label='上一年' onClick={() => shiftYear(-1)}>
@@ -390,7 +390,7 @@ function VerbPanel({ title, items, tone }: { title: string; items: string[]; ton
 			<div className='mt-3 flex flex-wrap gap-2'>
 				{items.length ? (
 					items.map(item => (
-						<span key={item} className='rounded-lg border bg-white/50 px-2 py-1 text-xs'>
+						<span key={item} className='rounded-lg border bg-white/10 px-2 py-1 text-xs'>
 							{item}
 						</span>
 					))

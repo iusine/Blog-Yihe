@@ -25,6 +25,13 @@
 
 	body {
 		@apply h-full bg-none;
+		/* 深色玻璃底：几团柔光 + 纵向深色渐变，白字和毛玻璃卡片都靠它撑住对比度 */
+		background-image:
+			radial-gradient(1100px 620px at 12% -12%, rgba(56, 189, 248, 0.2), transparent 62%),
+			radial-gradient(900px 520px at 88% 4%, rgba(168, 85, 247, 0.16), transparent 58%),
+			radial-gradient(820px 620px at 50% 112%, rgba(14, 116, 144, 0.22), transparent 60%),
+			linear-gradient(160deg, #0b1220 0%, #0d1526 46%, #080f1a 100%);
+		background-attachment: fixed;
 	}
 	* {
 		@apply border-border;
@@ -33,6 +40,18 @@
 	input:focus,
 	textarea:focus {
 		outline: none;
+	}
+	input::placeholder,
+	textarea::placeholder {
+		color: rgba(255, 255, 255, 0.42);
+	}
+	/* 深色玻璃主题下，浏览器自带的自动填充/日历图标也要看得清 */
+	input[type='date'],
+	input[type='time'] {
+		color-scheme: dark;
+	}
+	::selection {
+		background: color-mix(in srgb, var(--color-brand) 45%, transparent);
 	}
 	input:placeholder-shown {
 		text-overflow: ellipsis;
@@ -98,11 +117,10 @@
 
 /* [新增] 卡片本体样式，首页所有卡片与弹窗都靠 .card 取背景、圆角和阴影 */
 @utility card {
-	@apply bg-card absolute rounded-[40px] border p-6;
+	@apply bg-card absolute rounded-[40px] border p-6 backdrop-blur-xl;
 	box-shadow:
-		0 40px 50px -32px rgba(0, 0, 0, 0.05),
-		inset 0 0 20 rgba(255, 255, 255, 0.25);
-	backdrop-filter: blur(4px);
+		0 24px 70px -34px rgba(0, 0, 0, 0.65),
+		inset 0 1px 0 rgba(255, 255, 255, 0.14);
 
 	&.squircle {
 		@supports (corner-shape: squircle) {
@@ -121,7 +139,7 @@
 }
 
 @utility text-linear {
-	background: linear-gradient(to right bottom, #0003 0%, #aaa1), linear-gradient(to right bottom, var(--color-brand) 40%, var(--color-brand-secondary));
+	background: linear-gradient(to right bottom, rgba(255, 255, 255, 0.95) 10%, var(--color-brand) 70%, var(--color-brand-secondary));
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	background-clip: text;
@@ -129,11 +147,11 @@
 
 @utility bg-linear {
 	background: linear-gradient(to right bottom, var(--color-brand) 0%, var(--color-brand-secondary));
-	color: white;
+	color: #0b1220;
 }
 
 @utility shadow {
-	box-shadow: 0 40px 50px -32px rgba(0, 0, 0, 0.05);
+	box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.6);
 }
 
 @utility btn-rounded {
@@ -144,8 +162,8 @@
 	}
 }
 @utility brand-btn {
-	@apply bg-brand btn-rounded flex items-center gap-2 border-[1.5px] px-4 py-2 text-sm font-medium text-white;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+	@apply bg-brand btn-rounded flex items-center gap-2 border-[1.5px] border-white/20 px-4 py-2 text-sm font-medium text-[#0b1220];
+	box-shadow: 0 6px 20px -8px color-mix(in srgb, var(--color-brand) 55%, transparent);
 }
 
 @utility no-spinner {

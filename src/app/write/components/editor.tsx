@@ -143,7 +143,7 @@ function EditorToolbar({ editor, disabled }: { editor: Editor | null; disabled: 
 	const Divider = () => <span className='mx-1 h-5 w-px bg-black/10' />
 
 	return (
-		<div className={cn('mb-3 flex flex-wrap items-center gap-0.5 rounded-xl border bg-white/40 p-1', disabled && 'hidden')}>
+		<div className={cn('mb-3 flex flex-wrap items-center gap-0.5 rounded-xl border bg-white/[0.08] p-1', disabled && 'hidden')}>
 			{/* 段落 */}
 			<button type='button' title='正文' className={item(editor.isActive('paragraph'))} onClick={run(() => editor.chain().focus().setParagraph().run())}>
 				<Pilcrow className='size-4' />

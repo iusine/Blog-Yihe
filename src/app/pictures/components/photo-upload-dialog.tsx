@@ -126,14 +126,14 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 			<button
 				type='button'
 				onClick={() => inputRef.current?.click()}
-				className='mb-4 flex h-24 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#8b7667]/40 bg-white/50 text-sm text-[#5B423F] transition-colors hover:bg-white/80'>
+				className='mb-4 flex h-24 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/30/40 bg-white/10 text-sm text-white transition-colors hover:bg-white/20'>
 				<Plus className='h-4 w-4' />
 				选择照片（可多选）
 			</button>
 
 			<div className='space-y-3'>
 				{drafts.map(draft => (
-					<div key={draft.key} className='flex gap-3 rounded-xl border bg-white/70 p-2.5'>
+					<div key={draft.key} className='flex gap-3 rounded-xl border bg-white/10 p-2.5'>
 						<img src={draft.previewUrl} alt={draft.title} className='h-24 w-32 shrink-0 rounded-lg bg-black/5 object-contain' />
 
 						<div className='min-w-0 flex-1 space-y-1.5'>
@@ -141,20 +141,20 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 								value={draft.title}
 								onChange={event => updateDraft(draft.key, { title: event.target.value })}
 								placeholder='标题'
-								className='w-full rounded-md border bg-white px-2 py-1 text-sm font-medium focus:ring-1 focus:ring-[#2fcbe7] focus:outline-none'
+								className='w-full rounded-md border bg-white/10 px-2 py-1 text-sm font-medium focus:ring-1 focus:ring-brand focus:outline-none'
 							/>
 							<div className='grid grid-cols-2 gap-1.5'>
 								<input
 									type='date'
 									value={draft.date}
 									onChange={event => updateDraft(draft.key, { date: event.target.value })}
-									className='w-full rounded-md border bg-white px-2 py-1 text-xs text-[#5B423F]'
+									className='w-full rounded-md border bg-white/10 px-2 py-1 text-xs text-white'
 								/>
 								<input
 									value={draft.location}
 									onChange={event => updateDraft(draft.key, { location: event.target.value })}
 									placeholder='地点，如 广州塔'
-									className='w-full rounded-md border bg-white px-2 py-1 text-xs'
+									className='w-full rounded-md border bg-white/10 px-2 py-1 text-xs'
 								/>
 							</div>
 							<textarea
@@ -162,13 +162,13 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 								onChange={event => updateDraft(draft.key, { description: event.target.value })}
 								placeholder='照片说明…'
 								rows={2}
-								className='w-full resize-none rounded-md border bg-white px-2 py-1 text-xs'
+								className='w-full resize-none rounded-md border bg-white/10 px-2 py-1 text-xs'
 							/>
 							<input
 								value={draft.tagsInput}
 								onChange={event => updateDraft(draft.key, { tagsInput: event.target.value })}
 								placeholder='标签，用逗号分隔'
-								className='w-full rounded-md border bg-white px-2 py-1 text-xs'
+								className='w-full rounded-md border bg-white/10 px-2 py-1 text-xs'
 							/>
 						</div>
 
@@ -180,7 +180,7 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 			</div>
 
 			<div className='mt-5 flex gap-3'>
-				<button type='button' onClick={onClose} disabled={saving} className='flex-1 rounded-lg border bg-white px-4 py-2 text-sm transition-colors hover:bg-gray-50'>
+				<button type='button' onClick={onClose} disabled={saving} className='flex-1 rounded-lg border bg-white/10 px-4 py-2 text-sm transition-colors hover:bg-white/15'>
 					取消
 				</button>
 				<button type='button' onClick={handleSubmit} disabled={saving || drafts.length === 0} className='brand-btn flex-1 justify-center rounded-lg px-4 py-2 text-sm disabled:opacity-60'>

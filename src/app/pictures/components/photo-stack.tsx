@@ -23,7 +23,7 @@ export default function PhotoStack({ photos, onOpen }: { photos: Photo[]; onOpen
 				return (
 					<span
 						key={photo.id}
-						className='absolute block overflow-hidden rounded-[9px] border-[3px] border-white bg-white shadow-[0_16px_28px_-16px_rgba(70,45,30,0.6)]'
+						className='absolute block overflow-hidden rounded-[9px] border-[3px] border-white bg-white/10 shadow-[0_16px_28px_-16px_rgba(70,45,30,0.6)]'
 						style={{
 							left: layout.left,
 							top: layout.top,
@@ -43,7 +43,7 @@ export default function PhotoStack({ photos, onOpen }: { photos: Photo[]; onOpen
 			})}
 
 			{photos.length > 3 && (
-				<span className='absolute right-0 -bottom-1 rounded-full bg-[#5B423F] px-2 py-0.5 text-[10px] text-white/95 shadow' style={{ zIndex: 40 }}>
+				<span className='absolute right-0 -bottom-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] text-white/95 shadow' style={{ zIndex: 40 }}>
 					+{photos.length - 3}
 				</span>
 			)}

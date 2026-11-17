@@ -86,14 +86,14 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0 }}
 			transition={{ duration: 0.25 }}
-			className='fixed inset-0 z-40 bg-[#f6efe6]/80 backdrop-blur-xl'>
+			className='fixed inset-0 z-40 bg-black/50 backdrop-blur-xl'>
 			<div className='relative flex h-full w-full flex-col'>
 				<header className='relative z-30 flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-8'>
 					<div className='flex items-center gap-3'>
 						<button
 							type='button'
 							onClick={onClose}
-							className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border transition-colors hover:bg-white'
+							className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border transition-colors hover:bg-white/20'
 							aria-label='返回地图'>
 							<ArrowLeft className='h-4 w-4' />
 						</button>
@@ -101,7 +101,7 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 							<p className='text-secondary text-[11px] tracking-wide'>
 								{provinceName} · 照片墙
 							</p>
-							<h2 className='text-xl leading-tight font-semibold text-[#5B423F]'>{cityName}</h2>
+							<h2 className='text-xl leading-tight font-semibold text-white'>{cityName}</h2>
 						</div>
 						<span className='text-secondary mt-3 text-xs'>{photos.length} 张</span>
 					</div>
@@ -113,7 +113,7 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 								setSalt(value => value + 1)
 								setPositions({})
 							}}
-							className='bg-card flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs transition-colors hover:bg-white'
+							className='bg-card flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs transition-colors hover:bg-white/20'
 							disabled={photos.length === 0}>
 							<Shuffle className='h-3.5 w-3.5' />
 							重新散落
@@ -137,7 +137,7 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 					{photos.length === 0 && (
 						<div className='flex h-full flex-col items-center justify-center gap-3 text-center'>
 							<div className='text-5xl'>🖼️</div>
-							<p className='text-lg font-medium text-[#5B423F]'>这座城市还没有照片</p>
+							<p className='text-lg font-medium text-white'>这座城市还没有照片</p>
 							<p className='text-secondary max-w-xs text-xs leading-relaxed'>
 								点右上角「上传照片」，第一次上传会要求导入 GitHub App 的 .pem 私钥。
 							</p>
@@ -162,7 +162,7 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 									zIndex: position.z,
 									transform: `translate(-50%, -50%) rotate(${position.rotate}deg) scale(${position.scale})`
 								}}>
-								<span className='block w-fit rounded-[10px] border-[6px] border-white bg-white pb-5 shadow-[0_18px_36px_-18px_rgba(60,40,30,0.55)] transition-shadow'>
+								<span className='block w-fit rounded-[10px] border-[6px] border-white bg-white/10 pb-5 shadow-[0_18px_36px_-18px_rgba(60,40,30,0.55)] transition-shadow'>
 									<img
 										src={photo.src}
 										alt={photo.title}
@@ -170,7 +170,7 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 										style={{ maxHeight: 190, maxWidth: 330, width: 'auto', height: 'auto' }}
 										draggable={false}
 									/>
-									<span className='mt-1.5 flex max-w-full items-center justify-between gap-2 px-1 text-[10px] text-[#5B423F]'>
+									<span className='mt-1.5 flex max-w-full items-center justify-between gap-2 px-1 text-[10px] text-white'>
 										<span className='truncate'>{photo.title}</span>
 										<span className='text-secondary shrink-0'>{photo.date}</span>
 									</span>

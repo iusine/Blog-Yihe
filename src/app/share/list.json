@@ -52,17 +52,6 @@
 		"stars": 3
 	},
 	{
-		"name": "Loadership",
-		"url": "https://www.loadership.com/",
-		"logo": "https://www.loadership.com/loadership_logo_round.svg",
-		"description": "13种 Loader 样式，在线调整使用。在 AI 时代可能意义小很多了。",
-		"tags": [
-			"CSS",
-			"Github"
-		],
-		"stars": 3
-	},
-	{
 		"name": "CSS Buttons",
 		"url": "https://cssbuttons.io/",
 		"logo": "/images/share/2b8118a3645967ee.svg",
@@ -272,15 +261,5 @@
 			"动画"
 		],
 		"stars": 3
-	},
-	{
-		"name": "Koi Pond",
-		"logo": "/images/share/a20a5149379578ee.webp",
-		"url": "https://www.bubbbly.com/app/koi-pond.html",
-		"description": "创意和美工都很棒",
-		"tags": [
-			"AI"
-		],
-		"stars": 4
 	}
 ]

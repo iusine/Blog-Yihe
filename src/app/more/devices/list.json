@@ -1,0 +1,14 @@
+[
+  {
+    "id": "workstation",
+    "name": "主力设备",
+    "model": "神州Z8-TA7NS",
+    "category": "桌面设备",
+    "year": "2021",
+    "brand": "",
+    "status": "主力在役",
+    "description": "我的日常开发与创作设备。",
+    "specs": "i7-11800H RTX3060 16GB 1T SSD",
+    "image": ""
+  }
+]

@@ -58,8 +58,8 @@
     "enabled": true
   },
   "articleCard": {
-    "width": 266,
-    "height": 160,
+    "width": 280,
+    "height": 140,
     "order": 8,
     "offsetX": null,
     "offsetY": null,

@@ -35,7 +35,8 @@ export default function ShareCard() {
         return null
     }
 
-    const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x + hiCardStyles.width / 2 - socialButtonsStyles.width
+    // 左边缘与留言墙卡片对齐
+    const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x - hiCardStyles.width / 2
     const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y + hiCardStyles.height / 2 + CARD_SPACING + socialButtonsStyles.height + CARD_SPACING
 
     return (

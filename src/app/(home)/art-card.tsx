@@ -22,7 +22,7 @@ export default function ArtCard() {
 
     return (
         <HomeDraggableLayer cardKey='artCard' x={x} y={y} width={styles.width} height={styles.height}>
-            <Card className='p-2 max-sm:static max-sm:translate-0' order={styles.order} width={styles.width} height={styles.height} x={x} y={y}>
+            <Card className='overflow-hidden !p-0 max-sm:static max-sm:translate-0' order={styles.order} width={styles.width} height={styles.height} x={x} y={y}>
                 {siteContent.enableChristmas && (
                     <>
                         <img
@@ -34,12 +34,12 @@ export default function ArtCard() {
                     </>
                 )}
 
-                {/* 首图固定用 avatar.png：按卡片宽度铺满，上下裁切到这张卡片的比例 */}
+                {/* 首图固定用 avatar.png：直接铺满整张卡片（卡片 overflow-hidden 负责裁圆角） */}
                 <img
                     onClick={() => router.push('/pictures')}
                     src='/images/avatar.png'
                     alt='wall art'
-                    className='h-full w-full cursor-pointer rounded-[32px] object-cover object-center'
+                    className='h-full w-full cursor-pointer rounded-[inherit] object-cover object-center'
                 />
 
                 {/* 足迹入口条：底图用 avatar.png，按宽度铺满、上下裁切到这条的比例 */}

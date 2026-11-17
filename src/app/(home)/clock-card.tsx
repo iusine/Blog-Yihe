@@ -83,7 +83,7 @@ export default function ClockCard() {
                                 router.push('/clock')
                             }
                         }}
-                        className='bg-secondary/20 card-rounded flex flex-1 cursor-pointer items-center justify-center gap-1 px-2'>
+                        className='card-rounded flex flex-1 cursor-pointer items-center justify-center gap-1 px-2'>
                         <SevenSegmentDigit value={parseInt(hours[0])} scale={0.8} />
                         <SevenSegmentDigit value={parseInt(hours[1])} scale={0.8} />
                         <Colon className='mx-1' />
@@ -98,7 +98,7 @@ export default function ClockCard() {
                         )}
                     </div>
 
-                    <div className='bg-secondary/20 card-rounded flex w-[104px] shrink-0 flex-col items-center justify-center gap-1.5 px-2'>
+                    <div className='card-rounded flex w-[104px] shrink-0 flex-col items-center justify-center gap-1.5 px-2'>
                         <div className='text-secondary flex w-full items-center justify-center gap-1 text-[11px] leading-none'>
                             <MapPin className='text-brand h-3 w-3 shrink-0' />
                             <span className='truncate'>{regionText || (location.loading ? '定位中…' : '位置未知')}</span>

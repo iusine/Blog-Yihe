@@ -142,8 +142,15 @@ function SevenSegmentDigit({ value, className, scale = 1 }: SevenSegmentDigitPro
     // 没点亮的段直接不画，只保留亮着的笔画
     const inactiveColor = 'transparent'
 
+    // 七段数码里的 1 只点亮右侧两根竖条，格子却和其他数字一样宽；
+    // 把它的格子裁到墨迹宽度，冒号前后的间距才不会忽大忽小
+    const isNarrow = value === 1
+    const glyphViewBox = isNarrow ? '23.2 0 5.4 52' : '0 0 29 52'
+    const glyphWidth = (isNarrow ? 5.4 : 29) * scale
+
     return (
-        <svg width={29 * scale} height={52 * scale} viewBox='0 0 29 52' fill='none' xmlns='http://www.w3.org/2000/svg' className={className}>
+        <svg width={glyphWidth} height={52 * scale} viewBox={glyphViewBox} fill='none' xmlns='http://www.w3.org/2000/svg' className={className}>
+            <g>
             <path
                 d='M4.20248 3.49482C2.82797 2.27303 3.69218 0 5.53121 0H22.6867C24.5522 0 25.4019 2.32821 23.975 3.52982L23.5791 3.86316C23.2186 4.16681 22.7623 4.33333 22.2909 4.33333H5.90621C5.41638 4.33333 4.94359 4.15358 4.57748 3.82815L4.20248 3.49482Z'
                 fill={segments[0] ? activeColor : inactiveColor}
@@ -172,6 +179,7 @@ function SevenSegmentDigit({ value, className, scale = 1 }: SevenSegmentDigitPro
                 d='M3.4564 47.7859C2.21509 49.1048 4.23823e-07 48.2263 6.6133e-07 46.4152L2.79423e-06 30.1501C3.00022e-06 28.5793 1.72791 27.6216 3.06 28.4541L3.39333 28.6625C3.9781 29.028 4.33334 29.6689 4.33334 30.3585L4.33333 46.061C4.33333 46.5705 4.13891 47.0607 3.78973 47.4317L3.4564 47.7859Z'
                 fill={segments[4] ? activeColor : inactiveColor}
             />
+            </g>
         </svg>
     )
 }

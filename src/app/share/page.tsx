@@ -1,86 +1,91 @@
-/* 首页由哪些卡片组成。 */
+/* 推荐分享：编辑（取消/添加/保存/编辑/删除）都需要先导入私钥才会出现。 */
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
 import GridView from './grid-view'
 import CreateDialog from './components/create-dialog'
-import { pushShares } from './services/push-shares'
+import { pushShares, type ShareRow } from './services/push-shares'
 import { useAuthStore } from '@/hooks/use-auth'
-import { useConfigStore } from '@/app/(home)/stores/config-store'
 import initialList from './list.json'
 import type { Share } from './components/share-card'
 import type { LogoItem } from './components/logo-upload-dialog'
 
+let rowSeed = 0
+const nextKey = () => `share-${(rowSeed += 1)}-${Date.now().toString(36)}`
+
+const toRows = (list: Share[]): ShareRow[] => list.map(item => ({ ...item, __key: nextKey() }))
+
 export default function Page() {
-    const [shares, setShares] = useState<Share[]>(initialList as Share[])
-    const [originalShares, setOriginalShares] = useState<Share[]>(initialList as Share[])
+    const [shares, setShares] = useState<ShareRow[]>(() => toRows(initialList as Share[]))
+    const [originalShares, setOriginalShares] = useState<ShareRow[]>(shares)
     const [isEditMode, setIsEditMode] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
-    const [editingShare, setEditingShare] = useState<Share | null>(null)
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
     const [logoItems, setLogoItems] = useState<Map<string, LogoItem>>(new Map())
     const keyInputRef = useRef<HTMLInputElement>(null)
+    /** 导入私钥之后要接着做的事 */
+    const pendingActionRef = useRef<(() => void) | null>(null)
 
     const { isAuth, setPrivateKey } = useAuthStore()
-    const { siteContent } = useConfigStore()
-    const hideEditButton = siteContent.hideEditButton ?? false
 
-    const handleUpdate = (updatedShare: Share, oldShare: Share, logoItem?: LogoItem) => {
-        setShares(prev => prev.map(s => (s.url === oldShare.url ? updatedShare : s)))
-        if (logoItem) {
-            setLogoItems(prev => {
-                const newMap = new Map(prev)
-                newMap.set(updatedShare.url, logoItem)
-                return newMap
-            })
+    const requireAuth = (action: () => void) => {
+        if (isAuth) {
+            action()
+            return
         }
+        pendingActionRef.current = action
+        keyInputRef.current?.click()
+    }
+
+    const handleUpdate = (updated: Share, old: Share, logoItem?: LogoItem) => {
+        const key = (old as ShareRow).__key
+        setShares(prev => prev.map(item => (item.__key === key ? { ...updated, __key: key } : item)))
+        if (logoItem) setLogoItems(prev => new Map(prev).set(key, logoItem))
     }
 
     const handleAdd = () => {
-        setEditingShare(null)
-        setIsCreateDialogOpen(true)
+        requireAuth(() => setIsCreateDialogOpen(true))
     }
 
-    const handleSaveShare = (updatedShare: Share, logoItem?: LogoItem) => {
-        if (editingShare) {
-            setShares(shares.map(s => (s.url === editingShare.url ? updatedShare : s)))
-        } else {
-            setShares([...shares, updatedShare])
-        }
-        if (logoItem) {
-            setLogoItems(prev => {
-                const newMap = new Map(prev)
-                newMap.set(updatedShare.url, logoItem)
-                return newMap
-            })
-        }
+    const handleSaveShare = (share: Share, logoItem?: LogoItem) => {
+        const row: ShareRow = { ...share, __key: nextKey() }
+        setShares(prev => [...prev, row])
+        if (logoItem) setLogoItems(prev => new Map(prev).set(row.__key, logoItem))
     }
 
     const handleDelete = (share: Share) => {
-        if (confirm(`确定要删除 ${share.name} 吗？`)) {
-            setShares(shares.filter(s => s.url !== share.url))
-        }
+        const key = (share as ShareRow).__key
+        if (!confirm(`确定要删除 ${share.name} 吗？`)) return
+
+        setShares(prev => prev.filter(item => item.__key !== key))
+        setLogoItems(prev => {
+            const next = new Map(prev)
+            next.delete(key)
+            return next
+        })
+        toast.success('已从列表移除，记得点「保存」提交')
     }
 
     const handleChoosePrivateKey = async (file: File) => {
         try {
             const text = await file.text()
-            setPrivateKey(text)
-            // 选择文件后自动保存
-            await handleSave()
+            if (!/BEGIN [A-Z ]*PRIVATE KEY/.test(text)) {
+                toast.error('这不是有效的 .pem 私钥文件')
+                return
+            }
+
+            await setPrivateKey(text)
+            toast.success('私钥已导入，2 小时内有效')
+
+            const action = pendingActionRef.current
+            pendingActionRef.current = null
+            if (action) action()
+            else setIsEditMode(true)
         } catch (error) {
             console.error('Failed to read private key:', error)
             toast.error('读取密钥文件失败')
-        }
-    }
-
-    const handleSaveClick = () => {
-        if (!isAuth) {
-            keyInputRef.current?.click()
-        } else {
-            handleSave()
         }
     }
 
@@ -88,16 +93,13 @@ export default function Page() {
         setIsSaving(true)
 
         try {
-            const updatedShares = await pushShares({
-                shares,
-                logoItems
-            })
+            const saved = await pushShares({ shares, logoItems })
+            const rows = toRows(saved)
 
-            setShares(updatedShares)
-            setOriginalShares(updatedShares)
+            setShares(rows)
+            setOriginalShares(rows)
             setLogoItems(new Map())
             setIsEditMode(false)
-            toast.success('保存成功！')
         } catch (error: any) {
             console.error('Failed to save:', error)
             toast.error(`保存失败: ${error?.message || '未知错误'}`)
@@ -112,11 +114,9 @@ export default function Page() {
         setIsEditMode(false)
     }
 
-    const buttonText = isAuth ? '保存' : '导入密钥'
-
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (!isEditMode && (e.ctrlKey || e.metaKey) && e.key === ',') {
+            if (isAuth && !isEditMode && (e.ctrlKey || e.metaKey) && e.key === ',') {
                 e.preventDefault()
                 setIsEditMode(true)
             }
@@ -126,7 +126,7 @@ export default function Page() {
         return () => {
             window.removeEventListener('keydown', handleKeyDown)
         }
-    }, [isEditMode])
+    }, [isAuth, isEditMode])
 
     return (
         <>
@@ -159,27 +159,34 @@ export default function Page() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={handleAdd}
+                            disabled={isSaving}
                             className='rounded-xl border bg-white/60 px-6 py-2 text-sm'>
                             添加
                         </motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleSaveClick} disabled={isSaving} className='brand-btn px-6'>
-                            {isSaving ? '保存中...' : buttonText}
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleSave} disabled={isSaving} className='brand-btn px-6'>
+                            {isSaving ? '保存中...' : '保存'}
                         </motion.button>
                     </>
+                ) : isAuth ? (
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setIsEditMode(true)}
+                        className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/80'>
+                        编辑
+                    </motion.button>
                 ) : (
-                    !hideEditButton && (
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setIsEditMode(true)}
-                            className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/80'>
-                            编辑
-                        </motion.button>
-                    )
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => keyInputRef.current?.click()}
+                        className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/80'>
+                        导入密钥
+                    </motion.button>
                 )}
             </motion.div>
 
-            {isCreateDialogOpen && <CreateDialog share={editingShare} onClose={() => setIsCreateDialogOpen(false)} onSave={handleSaveShare} />}
+            {isCreateDialogOpen && <CreateDialog share={null} onClose={() => setIsCreateDialogOpen(false)} onSave={handleSaveShare} />}
         </>
     )
 }

@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { clearAllAuthCache, getAuthToken as getToken, hasAuth as checkAuth, getPemFromCache, savePemToCache } from '@/lib/auth'
-import { useConfigStore } from '@/app/(home)/stores/config-store'
 interface AuthStore {
 	// State
 	isAuth: boolean
@@ -17,17 +16,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 	isAuth: false,
 	privateKey: null,
 
+	/**
+	 * 导入私钥。
+	 * 每次导入都会加密后写进 localStorage，2 小时内刷新页面/重开标签页都不用再导入。
+	 */
 	setPrivateKey: async (key: string) => {
 		set({ isAuth: true, privateKey: key })
-		const { siteContent } = useConfigStore.getState()
-		if (siteContent?.isCachePem) {
-			await savePemToCache(key)
-		}
+		await savePemToCache(key)
 	},
 
 	clearAuth: () => {
 		clearAllAuthCache()
-		set({ isAuth: false })
+		set({ isAuth: false, privateKey: null })
 	},
 
 	refreshAuthState: async () => {
@@ -41,14 +41,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 	}
 }))
 
-getPemFromCache().then((key) => {
+// 刷新页面时先把本地缓存的私钥恢复出来（2 小时内有效）
+getPemFromCache().then(key => {
 	if (key) {
-		useAuthStore.setState({ privateKey: key })
+		useAuthStore.setState({ privateKey: key, isAuth: true })
+		return
 	}
-})
 
-checkAuth().then((isAuth) => {
-	if (isAuth) {
-		useAuthStore.setState({ isAuth })
-	}
+	checkAuth().then(isAuth => {
+		if (isAuth) useAuthStore.setState({ isAuth })
+	})
 })

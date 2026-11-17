@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -32,18 +32,25 @@ export function ProjectCard({ project, isEditMode = false, onUpdate, onDelete }:
 	const [showImageDialog, setShowImageDialog] = useState(false)
 	const [imageItem, setImageItem] = useState<ImageItem | null>(null)
 
-	const handleFieldChange = (field: keyof Project, value: any) => {
-		const updated = { ...localProject, [field]: value }
+	/** 同帧内连续改多个字段时，靠 ref 保证用的是最新值，不会互相覆盖 */
+	const latestRef = useRef(localProject)
+	latestRef.current = localProject
+
+	const commit = (patch: Partial<Project>, nextImage?: ImageItem) => {
+		const updated = { ...latestRef.current, ...patch }
+		latestRef.current = updated
 		setLocalProject(updated)
-		onUpdate?.(updated, project, imageItem || undefined)
+		onUpdate?.(updated, project, nextImage ?? imageItem ?? undefined)
+	}
+
+	const handleFieldChange = (field: keyof Project, value: any) => {
+		commit({ [field]: value } as Partial<Project>)
 	}
 
 	const handleImageSubmit = (image: ImageItem) => {
 		setImageItem(image)
 		const imageUrl = image.type === 'url' ? image.url : image.previewUrl
-		const updated = { ...localProject, image: imageUrl }
-		setLocalProject(updated)
-		onUpdate?.(updated, project, image)
+		commit({ image: imageUrl }, image)
 	}
 
 	const handleTagsChange = (tagsStr: string) => {
@@ -56,6 +63,7 @@ export function ProjectCard({ project, isEditMode = false, onUpdate, onDelete }:
 
 	const handleCancel = () => {
 		setLocalProject(project)
+		latestRef.current = project
 		setIsEditing(false)
 		setImageItem(null)
 	}

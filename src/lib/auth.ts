@@ -2,10 +2,20 @@ import { createInstallationToken, getInstallationId, signAppJwt } from './github
 import { GITHUB_CONFIG } from '@/consts'
 import { useAuthStore } from '@/hooks/use-auth'
 import { toast } from 'sonner'
-import { decrypt,encrypt } from './aes256-util'
+import { decrypt, encrypt } from './aes256-util'
 
 const GITHUB_TOKEN_CACHE_KEY = 'github_token'
 const GITHUB_PEM_CACHE_KEY = 'p_info'
+const GITHUB_PEM_EXP_KEY = 'p_info_exp'
+
+/**
+ * 私钥在本机缓存多久。
+ *
+ * 需求：导入一次之后，刷新页面不用再导入，本地保留 2 小时。
+ * 私钥是加密后再存的（AES-GCM，口令来自 NEXT_PUBLIC_GITHUB_ENCRYPT_KEY），
+ * 存 localStorage 而不是 sessionStorage，所以关掉标签页再打开也还在（2 小时内）。
+ */
+export const PEM_CACHE_TTL = 2 * 60 * 60 * 1000
 
 function getTokenFromCache(): string | null {
 	if (typeof sessionStorage === 'undefined') return null
@@ -34,35 +44,66 @@ function clearTokenCache(): void {
 	}
 }
 
-export async function getPemFromCache(): Promise<string | null> {
-	if (typeof sessionStorage === 'undefined') return null
+function pemExpired(): boolean {
 	try {
-		// 解密缓存中的 pem
-		const encryptedPem = sessionStorage.getItem(GITHUB_PEM_CACHE_KEY)
+		const expiry = Number(localStorage.getItem(GITHUB_PEM_EXP_KEY) || 0)
+		return !expiry || expiry <= Date.now()
+	} catch {
+		return true
+	}
+}
+
+function clearPemCache(): void {
+	if (typeof localStorage === 'undefined') return
+	try {
+		localStorage.removeItem(GITHUB_PEM_CACHE_KEY)
+		localStorage.removeItem(GITHUB_PEM_EXP_KEY)
+	} catch (error) {
+		console.error('Failed to clear pem cache:', error)
+	}
+}
+
+export async function getPemFromCache(): Promise<string | null> {
+	if (typeof localStorage === 'undefined') return null
+
+	try {
+		if (pemExpired()) {
+			clearPemCache()
+			return null
+		}
+
+		const encryptedPem = localStorage.getItem(GITHUB_PEM_CACHE_KEY)
 		if (!encryptedPem) return null
+
 		return await decrypt(encryptedPem, GITHUB_CONFIG.ENCRYPT_KEY)
 	} catch {
+		// 口令换了或者数据损坏，当作没有缓存
+		clearPemCache()
 		return null
 	}
 }
 
 export async function savePemToCache(pem: string): Promise<void> {
-	if (typeof sessionStorage === 'undefined') return
+	if (typeof localStorage === 'undefined') return
+
 	try {
-		// 加密 pem 后存储
 		const encryptedPem = await encrypt(pem, GITHUB_CONFIG.ENCRYPT_KEY)
-		sessionStorage.setItem(GITHUB_PEM_CACHE_KEY, encryptedPem)
+		localStorage.setItem(GITHUB_PEM_CACHE_KEY, encryptedPem)
+		localStorage.setItem(GITHUB_PEM_EXP_KEY, String(Date.now() + PEM_CACHE_TTL))
 	} catch (error) {
 		console.error('Failed to save pem to cache:', error)
 	}
 }
 
-function clearPemCache(): void {
-	if (typeof sessionStorage === 'undefined') return
+/** 私钥缓存还剩多少毫秒（没有缓存或已过期返回 0） */
+export function getPemCacheRemaining(): number {
+	if (typeof localStorage === 'undefined') return 0
 	try {
-		sessionStorage.removeItem(GITHUB_PEM_CACHE_KEY)
-	} catch (error) {
-		console.error('Failed to clear pem cache:', error)
+		const expiry = Number(localStorage.getItem(GITHUB_PEM_EXP_KEY) || 0)
+		if (!expiry || expiry <= Date.now()) return 0
+		return expiry - Date.now()
+	} catch {
+		return 0
 	}
 }
 
@@ -88,10 +129,16 @@ export async function getAuthToken(): Promise<string> {
 		return cachedToken
 	}
 
-	// 2. 获取私钥（从缓存）
-	const privateKey = useAuthStore.getState().privateKey
+	// 2. 获取私钥（内存 → 本地缓存）
+	let privateKey = useAuthStore.getState().privateKey
+
 	if (!privateKey) {
-		throw new Error('需要先设置私钥。请使用 useAuth().setPrivateKey()')
+		privateKey = await getPemFromCache()
+		if (privateKey) useAuthStore.setState({ privateKey, isAuth: true })
+	}
+
+	if (!privateKey) {
+		throw new Error('需要先设置私钥。请先导入 GitHub App 的 .pem 私钥文件')
 	}
 
 	toast.info('正在签发 JWT...')

@@ -33,10 +33,10 @@ const list = [
         href: '/blog'
     },
     {
-        icon: ProjectsOutlineSVG,
-        iconActive: ProjectsFilledSVG,
-        label: '我的项目',
-        href: '/projects'
+        icon: ShareOutlineSVG,
+        iconActive: ShareFilledSVG,
+        label: '推荐分享',
+        href: '/share'
     },
     {
         icon: AboutOutlineSVG,
@@ -45,10 +45,10 @@ const list = [
         href: '/about'
     },
     {
-        icon: ShareOutlineSVG,
-        iconActive: ShareFilledSVG,
-        label: '推荐分享',
-        href: '/share'
+        icon: ProjectsOutlineSVG,
+        iconActive: ProjectsFilledSVG,
+        label: '我的项目',
+        href: '/projects'
     },
     {
         icon: WebsiteOutlineSVG,

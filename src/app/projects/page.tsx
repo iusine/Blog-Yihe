@@ -1,78 +1,91 @@
-/* 首页由哪些卡片组成。 */
+/* 我的项目：编辑（取消/添加/保存/编辑/删除）都需要先导入私钥才会出现。 */
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
 import { ProjectCard, type Project } from './components/project-card'
 import CreateDialog from './components/create-dialog'
-import { pushProjects } from './services/push-projects'
+import { pushProjects, type ProjectRow } from './services/push-projects'
 import { useAuthStore } from '@/hooks/use-auth'
-import { useConfigStore } from '@/app/(home)/stores/config-store'
 import initialList from './list.json'
 import type { ImageItem } from './components/image-upload-dialog'
 
+let rowSeed = 0
+const nextKey = () => `project-${(rowSeed += 1)}-${Date.now().toString(36)}`
+
+const toRows = (list: Project[]): ProjectRow[] => list.map(item => ({ ...item, __key: nextKey() }))
+
 export default function Page() {
-    const [projects, setProjects] = useState<Project[]>(initialList as Project[])
-    const [originalProjects, setOriginalProjects] = useState<Project[]>(initialList as Project[])
+    const [projects, setProjects] = useState<ProjectRow[]>(() => toRows(initialList as Project[]))
+    const [originalProjects, setOriginalProjects] = useState<ProjectRow[]>(projects)
     const [isEditMode, setIsEditMode] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
-    const [editingProject, setEditingProject] = useState<Project | null>(null)
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
     const [imageItems, setImageItems] = useState<Map<string, ImageItem>>(new Map())
     const keyInputRef = useRef<HTMLInputElement>(null)
+    /** 导入私钥之后要接着做的事 */
+    const pendingActionRef = useRef<(() => void) | null>(null)
 
     const { isAuth, setPrivateKey } = useAuthStore()
-    const { siteContent } = useConfigStore()
-    const hideEditButton = siteContent.hideEditButton ?? false
 
-    const handleUpdate = (updatedProject: Project, oldProject: Project, imageItem?: ImageItem) => {
-        setProjects(prev => prev.map(p => (p.url === oldProject.url ? updatedProject : p)))
-        if (imageItem) {
-            setImageItems(prev => {
-                const newMap = new Map(prev)
-                newMap.set(updatedProject.url, imageItem)
-                return newMap
-            })
+    /** 需要私钥的动作：没导入就先弹 .pem 选择框，导入后自动继续 */
+    const requireAuth = (action: () => void) => {
+        if (isAuth) {
+            action()
+            return
         }
+        pendingActionRef.current = action
+        keyInputRef.current?.click()
+    }
+
+    const handleUpdate = (updated: Project, old: Project, imageItem?: ImageItem) => {
+        const key = (old as ProjectRow).__key
+        setProjects(prev => prev.map(item => (item.__key === key ? { ...updated, __key: key } : item)))
+        if (imageItem) setImageItems(prev => new Map(prev).set(key, imageItem))
     }
 
     const handleAdd = () => {
-        setEditingProject(null)
-        setIsCreateDialogOpen(true)
+        requireAuth(() => setIsCreateDialogOpen(true))
     }
 
-    const handleSaveProject = (updatedProject: Project) => {
-        if (editingProject) {
-            const updated = projects.map(p => (p.url === editingProject.url ? updatedProject : p))
-            setProjects(updated)
-        } else {
-            setProjects([...projects, updatedProject])
-        }
+    const handleSaveProject = (project: Project, imageItem?: ImageItem) => {
+        const row: ProjectRow = { ...project, __key: nextKey() }
+        setProjects(prev => [...prev, row])
+        if (imageItem) setImageItems(prev => new Map(prev).set(row.__key, imageItem))
     }
 
     const handleDelete = (project: Project) => {
-        if (confirm(`确定要删除 ${project.name} 吗？`)) {
-            setProjects(projects.filter(p => p.url !== project.url))
-        }
+        const key = (project as ProjectRow).__key
+        if (!confirm(`确定要删除 ${project.name} 吗？`)) return
+
+        setProjects(prev => prev.filter(item => item.__key !== key))
+        setImageItems(prev => {
+            const next = new Map(prev)
+            next.delete(key)
+            return next
+        })
+        toast.success('已从列表移除，记得点「保存」提交')
     }
 
     const handleChoosePrivateKey = async (file: File) => {
         try {
             const text = await file.text()
-            setPrivateKey(text)
-            await handleSave()
+            if (!/BEGIN [A-Z ]*PRIVATE KEY/.test(text)) {
+                toast.error('这不是有效的 .pem 私钥文件')
+                return
+            }
+
+            await setPrivateKey(text)
+            toast.success('私钥已导入，2 小时内有效')
+
+            const action = pendingActionRef.current
+            pendingActionRef.current = null
+            if (action) action()
+            else setIsEditMode(true)
         } catch (error) {
             console.error('Failed to read private key:', error)
             toast.error('读取密钥文件失败')
-        }
-    }
-
-    const handleSaveClick = () => {
-        if (!isAuth) {
-            keyInputRef.current?.click()
-        } else {
-            handleSave()
         }
     }
 
@@ -80,15 +93,13 @@ export default function Page() {
         setIsSaving(true)
 
         try {
-            await pushProjects({
-                projects,
-                imageItems
-            })
+            const saved = await pushProjects({ projects, imageItems })
+            const rows = toRows(saved)
 
-            setOriginalProjects(projects)
+            setProjects(rows)
+            setOriginalProjects(rows)
             setImageItems(new Map())
             setIsEditMode(false)
-            toast.success('保存成功！')
         } catch (error: any) {
             console.error('Failed to save:', error)
             toast.error(`保存失败: ${error?.message || '未知错误'}`)
@@ -103,11 +114,9 @@ export default function Page() {
         setIsEditMode(false)
     }
 
-    const buttonText = isAuth ? '保存' : '导入密钥'
-
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (!isEditMode && (e.ctrlKey || e.metaKey) && e.key === ',') {
+            if (isAuth && !isEditMode && (e.ctrlKey || e.metaKey) && e.key === ',') {
                 e.preventDefault()
                 setIsEditMode(true)
             }
@@ -117,7 +126,7 @@ export default function Page() {
         return () => {
             window.removeEventListener('keydown', handleKeyDown)
         }
-    }, [isEditMode])
+    }, [isAuth, isEditMode])
 
     return (
         <>
@@ -135,10 +144,18 @@ export default function Page() {
 
             <div className='flex flex-col items-center justify-center px-6 pt-32 pb-12'>
                 <div className='grid w-full max-w-[1200px] grid-cols-2 gap-6 max-md:grid-cols-1'>
-                    {projects.map((project, index) => (
-                        <ProjectCard key={project.url} project={project} isEditMode={isEditMode} onUpdate={handleUpdate} onDelete={() => handleDelete(project)} />
+                    {projects.map(project => (
+                        <ProjectCard
+                            key={project.__key}
+                            project={project}
+                            isEditMode={isEditMode}
+                            onUpdate={handleUpdate}
+                            onDelete={() => handleDelete(project)}
+                        />
                     ))}
                 </div>
+
+                {projects.length === 0 && <p className='text-secondary py-20 text-sm'>还没有项目，导入私钥后点「添加」加一个。</p>}
             </div>
 
             <motion.div initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} className='absolute top-4 right-6 flex gap-3 max-sm:hidden'>
@@ -156,27 +173,34 @@ export default function Page() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={handleAdd}
+                            disabled={isSaving}
                             className='rounded-xl border bg-white/60 px-6 py-2 text-sm'>
                             添加
                         </motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleSaveClick} disabled={isSaving} className='brand-btn px-6'>
-                            {isSaving ? '保存中...' : buttonText}
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleSave} disabled={isSaving} className='brand-btn px-6'>
+                            {isSaving ? '保存中...' : '保存'}
                         </motion.button>
                     </>
+                ) : isAuth ? (
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setIsEditMode(true)}
+                        className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/80'>
+                        编辑
+                    </motion.button>
                 ) : (
-                    !hideEditButton && (
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setIsEditMode(true)}
-                            className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/80'>
-                            编辑
-                        </motion.button>
-                    )
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => keyInputRef.current?.click()}
+                        className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/80'>
+                        导入密钥
+                    </motion.button>
                 )}
             </motion.div>
 
-            {isCreateDialogOpen && <CreateDialog project={editingProject} onClose={() => setIsCreateDialogOpen(false)} onSave={handleSaveProject} />}
+            {isCreateDialogOpen && <CreateDialog project={null} onClose={() => setIsCreateDialogOpen(false)} onSave={handleSaveProject} />}
         </>
     )
 }

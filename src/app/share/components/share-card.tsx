@@ -5,7 +5,7 @@ import StarRating from '@/components/star-rating'
 import { useSize } from '@/hooks/use-size'
 import { cn } from '@/lib/utils'
 import EditableStarRating from '@/components/editable-star-rating'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import LogoUploadDialog, { type LogoItem } from './logo-upload-dialog'
 
 export interface Share {
@@ -32,18 +32,30 @@ export function ShareCard({ share, isEditMode = false, onUpdate, onDelete }: Sha
 	const [showLogoDialog, setShowLogoDialog] = useState(false)
 	const [logoItem, setLogoItem] = useState<LogoItem | null>(null)
 
-	const handleFieldChange = (field: keyof Share, value: any) => {
-		const updated = { ...localShare, [field]: value }
+	/**
+	 * 同步保存「最新的本地值」。
+	 * 直接用 localShare 的话，同一帧里连续改两个字段（比如名字失焦后马上改描述）
+	 * 第二次读到的还是旧 state，会把第一次的修改覆盖回去。
+	 */
+	const latestRef = useRef(localShare)
+	latestRef.current = localShare
+
+	/** 合并一次修改：更新本地 + ref，并通知页面 */
+	const commit = (patch: Partial<Share>, nextLogo?: LogoItem) => {
+		const updated = { ...latestRef.current, ...patch }
+		latestRef.current = updated
 		setLocalShare(updated)
-		onUpdate?.(updated, share, logoItem || undefined)
+		onUpdate?.(updated, share, nextLogo ?? logoItem ?? undefined)
+	}
+
+	const handleFieldChange = (field: keyof Share, value: any) => {
+		commit({ [field]: value } as Partial<Share>)
 	}
 
 	const handleLogoSubmit = (logo: LogoItem) => {
 		setLogoItem(logo)
 		const logoUrl = logo.type === 'url' ? logo.url : logo.previewUrl
-		const updated = { ...localShare, logo: logoUrl }
-		setLocalShare(updated)
-		onUpdate?.(updated, share, logo)
+		commit({ logo: logoUrl }, logo)
 	}
 
 	const handleTagsChange = (tagsStr: string) => {
@@ -56,6 +68,7 @@ export function ShareCard({ share, isEditMode = false, onUpdate, onDelete }: Sha
 
 	const handleCancel = () => {
 		setLocalShare(share)
+		latestRef.current = share
 		setIsEditing(false)
 		setLogoItem(null)
 	}

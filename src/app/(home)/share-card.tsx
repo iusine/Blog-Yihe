@@ -48,20 +48,20 @@ export default function ShareCard() {
 
     return (
         <HomeDraggableLayer cardKey='shareCard' x={x} y={y} width={width} height={styles.height}>
-            <Card order={styles.order} width={width} height={styles.height} x={x} y={y} className='flex items-center'>
+            <Card order={styles.order} width={width} height={styles.height} x={x} y={y} className='flex flex-col justify-center gap-1.5 !p-4'>
+                <h2 className='text-secondary text-[11px] leading-none'>随机推荐分享</h2>
+
                 <a
                     href={randomItem.url}
                     target='_blank'
                     rel='noreferrer'
                     title={randomItem.name}
-                    className='flex w-full items-center gap-4 transition-opacity hover:opacity-80'>
-                    <span className='relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border bg-white/60 p-1.5'>
+                    className='flex min-w-0 items-center gap-3 transition-opacity hover:opacity-80'>
+                    <span className='relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border bg-white/60 p-1'>
                         <img src={randomItem.logo} alt={randomItem.name} className='h-full w-full object-contain' />
                     </span>
 
-                    <span className='min-w-0 flex-1'>
-                        <span className='block truncate text-base font-medium'>{randomItem.name}</span>
-                    </span>
+                    <span className='min-w-0 flex-1 truncate text-sm font-medium'>{randomItem.name}</span>
                 </a>
             </Card>
         </HomeDraggableLayer>

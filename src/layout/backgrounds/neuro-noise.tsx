@@ -86,12 +86,22 @@ void main() {
 	vec3 liftBlue = vec3(0.38, 0.66, 1.0);
 	vec3 core = vec3(0.93, 0.97, 1.0);
 
+	// 左下角少放点云：越靠左下角云越淡（只压云，不动底色）
+	float leftFade = length(vec2(uv.x * 1.35, uv.y * 1.55));
+	float rightFade = length(vec2((1.0 - uv.x) * 1.62, uv.y * 1.72));
+	float cornerFade = smoothstep(0.05, 1.05, min(leftFade, rightFade));
+	float cloudAmount = mix(0.2, 1.0, cornerFade);
+
+	// 右下角再单独压一档，整块区域都比原来淡
+	float brFade = smoothstep(0.0, 1.0, length(vec2((1.0 - uv.x) * 1.15, uv.y * 1.15)));
+	cloudAmount *= mix(0.58, 1.0, brFade);
+
 	vec3 color = base;
-	color += glowBlue * cloud * 0.62;
-	color += glowBlue * (1.0 - smoothstep(0.0, 0.95, length(q))) * 0.32;
-	color += liftBlue * pow(r.x, 1.6) * 0.45;
-	color += core * dense * 0.62;
-	color += liftBlue * wisps * 0.42;
+	color += glowBlue * cloud * 0.62 * cloudAmount;
+	color += glowBlue * (1.0 - smoothstep(0.0, 0.95, length(q))) * 0.32 * cloudAmount;
+	color += liftBlue * pow(r.x, 1.6) * 0.45 * cloudAmount;
+	color += core * dense * 0.62 * cloudAmount;
+	color += liftBlue * wisps * 0.42 * cloudAmount;
 
 	// 大尺度明暗，云层才有厚薄
 	color *= 0.78 + 0.55 * smoothstep(0.1, 0.9, fbm(p * 0.55 + t * 0.3));

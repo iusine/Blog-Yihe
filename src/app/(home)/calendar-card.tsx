@@ -113,10 +113,9 @@ export default function CalendarCard() {
                                     onClick={() => openAlmanac(dateKey)}
                                     title={`查看 ${dateKey} 黄历`}
                                     className={cn(
-                                        // 所有日子（包括今天）共用同一套 hover 反馈；今天只用品牌色 + 加粗 + 底部小横线标记
-                                        'relative flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-lg leading-none transition-colors hover:bg-brand/15',
-                                        isToday &&
-                                            'font-semibold text-brand after:absolute after:bottom-[3px] after:h-[2px] after:w-4 after:rounded-full after:bg-brand/80 after:content-[""]'
+                                        // 所有日子（包括今天）共用同一套 hover 反馈；今天只用品牌色 + 加粗标记，不加描边和横线
+                                        'flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-lg leading-none transition-colors hover:bg-brand/15',
+                                        isToday && 'font-semibold text-brand'
                                     )}>
                                     <span className={cn('text-[13px]', compact && 'text-xs')}>{day}</span>
                                     {!compact && (

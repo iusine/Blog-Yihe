@@ -14,9 +14,10 @@ export default function ArticleCard() {
     const { blog, loading } = useLatestBlog()
     const styles = cardStyles.articleCard
     const hiCardStyles = cardStyles.hiCard
-    const socialButtonsStyles = cardStyles.socialButtons
+    const navCardStyles = cardStyles.navCard
 
-    const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x + hiCardStyles.width / 2 - socialButtonsStyles.width - CARD_SPACING - styles.width
+    // 左边缘与左侧导航卡对齐（原来按社交按钮宽度算，右边会往里缩一截）
+    const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x - hiCardStyles.width / 2 - navCardStyles.width - CARD_SPACING
     const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y + hiCardStyles.height / 2 + CARD_SPACING
 
     return (

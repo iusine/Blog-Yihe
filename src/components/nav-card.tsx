@@ -10,10 +10,9 @@ import { useCenterStore } from '@/hooks/use-center'
 import { CARD_SPACING } from '@/consts'
 import ScrollOutlineSVG from '@/svgs/scroll-outline.svg'
 import ScrollFilledSVG from '@/svgs/scroll-filled.svg'
+import PenSVG from '@/svgs/pen.svg'
 import ProjectsFilledSVG from '@/svgs/projects-filled.svg'
 import ProjectsOutlineSVG from '@/svgs/projects-outline.svg'
-import AboutFilledSVG from '@/svgs/about-filled.svg'
-import AboutOutlineSVG from '@/svgs/about-outline.svg'
 import ShareFilledSVG from '@/svgs/share-filled.svg'
 import ShareOutlineSVG from '@/svgs/share-outline.svg'
 import WebsiteFilledSVG from '@/svgs/website-filled.svg'
@@ -33,16 +32,10 @@ const list = [
         href: '/blog'
     },
     {
-        icon: ShareOutlineSVG,
-        iconActive: ShareFilledSVG,
-        label: '推荐分享',
-        href: '/share'
-    },
-    {
-        icon: AboutOutlineSVG,
-        iconActive: AboutFilledSVG,
-        label: '关于网站',
-        href: '/about'
+        icon: PenSVG,
+        iconActive: PenSVG,
+        label: '随笔文案',
+        href: '/essay'
     },
     {
         icon: ProjectsOutlineSVG,
@@ -51,10 +44,16 @@ const list = [
         href: '/projects'
     },
     {
+        icon: ShareOutlineSVG,
+        iconActive: ShareFilledSVG,
+        label: '推荐分享',
+        href: '/share'
+    },
+    {
         icon: WebsiteOutlineSVG,
         iconActive: WebsiteFilledSVG,
-        label: '优秀博客',
-        href: '/bloggers'
+        label: '我的技能',
+        href: '/skills'
     }
 ]
 

@@ -50,10 +50,10 @@
       "order": 3
     },
     {
-      "id": "juejin",
-      "type": "juejin",
-      "value": "https://juejin.cn/user/2427311675422382",
-      "label": "稀土掘金",
+      "id": "tg",
+      "type": "tg",
+      "value": "https://t.me/",
+      "label": "",
       "order": 2
     },
     {

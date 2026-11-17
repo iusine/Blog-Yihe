@@ -2,12 +2,27 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, MapPin, Moon, Sun } from 'lucide-react'
 import Card from '@/components/card'
 import { useCenterStore } from '@/hooks/use-center'
 import { useConfigStore } from './stores/config-store'
 import { useLayoutEditStore } from './stores/layout-edit-store'
 import { CARD_SPACING } from '@/consts'
 import { HomeDraggableLayer } from './home-draggable-layer'
+import { describeWeather, useLocationWeather, weatherKind } from '@/hooks/use-location-weather'
+
+/** 天气代码 → 图标（白天/夜间也区分一下） */
+function WeatherIcon({ code, isDay }: { code?: number; isDay?: boolean }) {
+	const kind = weatherKind(code)
+	const className = 'text-brand h-3.5 w-3.5 shrink-0'
+
+	if (kind === 'sun') return isDay === false ? <Moon className={className} /> : <Sun className={className} />
+	if (kind === 'rain') return <CloudRain className={className} />
+	if (kind === 'snow') return <CloudSnow className={className} />
+	if (kind === 'storm') return <CloudLightning className={className} />
+	if (kind === 'fog') return <CloudFog className={className} />
+	return isDay === false ? <Cloud className={className} /> : <CloudSun className={className} />
+}
 
 export default function ClockCard() {
     const router = useRouter()
@@ -35,9 +50,14 @@ export default function ClockCard() {
     const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x + CARD_SPACING + hiCardStyles.width / 2
     const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y - styles.offset - styles.height
 
+    const location = useLocationWeather()
+    const regionText = [location.province, location.city].filter(Boolean).join(' ')
+    const weatherText = describeWeather(location.weatherCode)
+    const temperatureText = location.temperature === undefined ? '--' : `${Math.round(location.temperature)}°C`
+
     return (
         <HomeDraggableLayer cardKey='clockCard' x={x} y={y} width={styles.width} height={styles.height}>
-            <Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='p-2'>
+            <Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='p-3'>
                 {siteContent.enableChristmas && (
                     <>
                         <img
@@ -54,27 +74,42 @@ export default function ClockCard() {
                         />
                     </>
                 )}
-                <div
-                    onClick={() => {
-                        if (!editing) {
-                            router.push('/clock')
-                        }
-                    }}
-                    className='bg-secondary/20 card-rounded flex h-full w-full cursor-pointer items-center justify-center gap-1.5 p-2'>
-                    {/* [修改] 卡片加宽到 288，6 位数字用原来的 29×52 尺寸就能放下；
-                        冒号两侧留出间距，数字和冒号不再挤在一起 */}
-                    <SevenSegmentDigit value={parseInt(hours[0])} />
-                    <SevenSegmentDigit value={parseInt(hours[1])} />
-                    <Colon className='mx-1.5' />
-                    <SevenSegmentDigit value={parseInt(minutes[0])} />
-                    <SevenSegmentDigit value={parseInt(minutes[1])} />
-                    {showSeconds && (
-                        <>
-                            <Colon className='mx-1.5' />
-                            <SevenSegmentDigit value={parseInt(seconds[0])} />
-                            <SevenSegmentDigit value={parseInt(seconds[1])} />
-                        </>
-                    )}
+
+                <div className='flex h-full w-full flex-col items-center justify-between gap-1'>
+                    {/* 上：地区（省 + 市） */}
+                    <div className='text-secondary flex w-full items-center justify-center gap-1 text-[11px] leading-none'>
+                        <MapPin className='text-brand h-3 w-3 shrink-0' />
+                        <span className='truncate'>{regionText || (location.loading ? '定位中…' : '位置未知')}</span>
+                    </div>
+
+                    {/* 中：时间 */}
+                    <div
+                        onClick={() => {
+                            if (!editing) {
+                                router.push('/clock')
+                            }
+                        }}
+                        className='bg-secondary/20 card-rounded flex w-full cursor-pointer items-center justify-center gap-1.5 px-2 py-1.5'>
+                        <SevenSegmentDigit value={parseInt(hours[0])} />
+                        <SevenSegmentDigit value={parseInt(hours[1])} />
+                        <Colon className='mx-1.5' />
+                        <SevenSegmentDigit value={parseInt(minutes[0])} />
+                        <SevenSegmentDigit value={parseInt(minutes[1])} />
+                        {showSeconds && (
+                            <>
+                                <Colon className='mx-1.5' />
+                                <SevenSegmentDigit value={parseInt(seconds[0])} />
+                                <SevenSegmentDigit value={parseInt(seconds[1])} />
+                            </>
+                        )}
+                    </div>
+
+                    {/* 下：天气 + 温度 */}
+                    <div className='text-secondary flex w-full items-center justify-center gap-1 text-[11px] leading-none'>
+                        <WeatherIcon code={location.weatherCode} isDay={location.isDay} />
+                        <span>{weatherText || (location.loading ? '加载中…' : '—')}</span>
+                        <span className='text-primary font-medium'>{temperatureText}</span>
+                    </div>
                 </div>
             </Card>
         </HomeDraggableLayer>
@@ -102,7 +137,7 @@ function SevenSegmentDigit({ value, className }: SevenSegmentDigitProps) {
 
     const segments = segmentMap[value as keyof typeof segmentMap] || segmentMap[0]
     const activeColor = 'var(--color-primary)'
-    const inactiveColor = 'rgba(0, 0, 0, 0.05)'
+    const inactiveColor = 'rgba(255, 255, 255, 0.10)'
 
     return (
         <svg width='29' height='52' viewBox='0 0 29 52' fill='none' xmlns='http://www.w3.org/2000/svg' className={className}>

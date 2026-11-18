@@ -35,6 +35,8 @@ type PlaceOptions = {
 	isBold?: (label: LabelInput) => boolean
 	/** 允许的位移尝试，默认向下/上/左右错开 */
 	offsets?: Array<[number, number]>
+	/** 已经占用的区域（例如城市圆点），文字要避开，免得盖住后点错 */
+	obstacles?: Array<{ x: number; y: number; radius: number }>
 }
 
 const DEFAULT_OFFSETS: Array<[number, number]> = [
@@ -72,7 +74,7 @@ function overlaps(a: Box, b: Box): boolean {
 }
 
 export function placeLabels(inputs: LabelInput[], options: PlaceOptions): PlacedLabel[] {
-	const { project, fontSize, isBold, offsets = DEFAULT_OFFSETS } = options
+	const { project, fontSize, isBold, offsets = DEFAULT_OFFSETS, obstacles = [] } = options
 	const height = fontSize * 1.5
 
 	const ordered = [...inputs].sort((a, b) => {
@@ -82,7 +84,12 @@ export function placeLabels(inputs: LabelInput[], options: PlaceOptions): Placed
 	})
 
 	const placed: PlacedLabel[] = []
-	const boxes: Box[] = []
+	const boxes: Box[] = obstacles.map(o => ({
+		left: o.x - o.radius,
+		right: o.x + o.radius,
+		top: o.y - o.radius,
+		bottom: o.y + o.radius
+	}))
 
 	for (const input of ordered) {
 		const anchor = project(input)

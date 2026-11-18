@@ -1,12 +1,16 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { motion } from 'motion/react'
 import StarRating from '@/components/star-rating'
 import { useSize } from '@/hooks/use-size'
 import { cn } from '@/lib/utils'
 import EditableStarRating from '@/components/editable-star-rating'
 import { useRef, useState } from 'react'
-import LogoUploadDialog, { type LogoItem } from './logo-upload-dialog'
+import type { LogoItem } from './logo-upload-dialog'
+
+// 换图标弹窗只在编辑态点开时加载
+const LogoUploadDialog = dynamic(() => import('./logo-upload-dialog'), { ssr: false })
 
 export interface Share {
 	name: string

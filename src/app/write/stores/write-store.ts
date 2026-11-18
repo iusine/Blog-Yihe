@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { toast } from 'sonner'
 import { hashFileSHA256 } from '@/lib/file-utils'
 import { loadBlog } from '@/lib/load-blog'
-import { ensureLeadingH1, extractFirstH1, normalizeLeadingH1, stripInlineMarkdown } from '../lib/md-title'
+import { extractFirstH1, stripInlineMarkdown, stripLeadingH1IfMatches } from '../lib/md-title'
 import type { PublishForm, ImageItem, AttachmentItem } from '../types'
 
 export const formatDateTimeLocal = (date: Date = new Date()): string => {
@@ -259,7 +259,9 @@ export const useWriteStore = create<WriteStore>((set, get) => ({
 			}))
 
 			const configTitle = stripInlineMarkdown(blog.config.title || '')
-			const md = normalizeLeadingH1(ensureLeadingH1(blog.markdown, configTitle))
+			const title = configTitle || extractFirstH1(blog.markdown)
+			// 标题独立存放，正文里重复出现的首行 h1 去掉
+			const md = stripLeadingH1IfMatches(blog.markdown, title)
 
 			// Set form
 			set({
@@ -267,7 +269,7 @@ export const useWriteStore = create<WriteStore>((set, get) => ({
 				originalSlug: slug,
 				form: {
 					slug,
-					title: extractFirstH1(md) || configTitle,
+					title,
 					md,
 					tags: blog.config.tags || [],
 					date: blog.config.date ? formatDateTimeLocal(new Date(blog.config.date)) : formatDateTimeLocal(),

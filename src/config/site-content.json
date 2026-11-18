@@ -53,14 +53,14 @@
     {
       "id": "tg",
       "type": "tg",
-      "value": "https://t.me/",
+      "value": "https://t.me/iusine",
       "label": "Telegram",
       "order": 2
     },
     {
       "id": "email",
       "type": "email",
-      "value": "yysuni1001@gmail.com",
+      "value": "yh_film@163.com",
       "label": "",
       "order": 1
     }

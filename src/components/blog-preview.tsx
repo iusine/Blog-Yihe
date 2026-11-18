@@ -1,6 +1,8 @@
 'use client'
 
 import { motion } from 'motion/react'
+// 公式样式只随文章渲染加载，不再放进全站 globals.css
+import 'katex/dist/katex.min.css'
 import { INIT_DELAY } from '@/consts'
 import { useMarkdownRender } from '@/hooks/use-markdown-render'
 import { useSize } from '@/hooks/use-size'
@@ -37,7 +39,7 @@ export function BlogPreview({ markdown, title, tags, date, summary, cover, slug,
 				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
 				transition={{ delay: INIT_DELAY }}
-				className='card bg-article static flex-1 overflow-auto rounded-xl p-8'>
+				className='card bg-article static flex-1 overflow-auto rounded-xl p-8 max-sm:rounded-none max-sm:p-4'>
 				<div>
 					<div className='text-center text-2xl font-semibold'>{title}</div>
 

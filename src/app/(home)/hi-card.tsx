@@ -35,7 +35,7 @@ export default function HiCard() {
         <HomeDraggableLayer cardKey='hiCard' x={x} y={y} width={styles.width} height={styles.height}>
             <Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='relative text-center max-sm:static max-sm:translate-0'>
                 <Link href='/message' className='flex h-full flex-col items-center justify-center gap-1.5'>
-                    <span className='font-averia text-linear text-[40px] leading-none'>留言墙</span>
+                    <span className='font-averia text-linear -translate-y-2.5 text-[40px] leading-none'>留言墙</span>
 
                     <span className='text-secondary mt-1 text-sm'>{greeting}</span>
 

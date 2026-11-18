@@ -4,12 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { toast } from 'sonner'
 import { ChevronLeft } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import MapView from './components/map-view'
-import PhotoWall from './components/photo-wall'
-import PhotoInfoDialog from './components/photo-info-dialog'
-import PhotoEditDialog from './components/photo-edit-dialog'
-import PhotoUploadDialog from './components/photo-upload-dialog'
 import FootprintStatsView from './components/footprint-stats'
+
+// 照片墙和三个弹窗只在点击后出现，拆成独立 chunk，访客首屏不下载
+const PhotoWall = dynamic(() => import('./components/photo-wall'), { ssr: false })
+const PhotoInfoDialog = dynamic(() => import('./components/photo-info-dialog'), { ssr: false })
+const PhotoEditDialog = dynamic(() => import('./components/photo-edit-dialog'), { ssr: false })
+const PhotoUploadDialog = dynamic(() => import('./components/photo-upload-dialog'), { ssr: false })
 import { fetchProvinceGeo, type GeoCollection, type GeoFeature } from './lib/geo'
 import { groupPhotosByCity } from './lib/photos'
 import { computeFootprint } from './lib/footprint'
@@ -103,15 +106,14 @@ export default function Page() {
 			}
 		: null
 
-	/** 需要写入 GitHub 的操作：没导入私钥就先弹文件选择，导入后自动继续 */
+	/** 需要写入 GitHub 的操作：身份认证统一从首页完成 */
 	const requireAuth = useCallback(
 		(action: () => void) => {
 			if (isAuth) {
 				action()
 				return
 			}
-			pendingActionRef.current = action
-			keyInputRef.current?.click()
+			toast.info('请先回到首页完成身份认证')
 		},
 		[isAuth]
 	)
@@ -181,7 +183,7 @@ export default function Page() {
 			)}
 
 			{/* 顶部：足迹统计条（参考高德足迹）+ 面包屑 */}
-			<div className='pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center px-4 sm:top-6'>
+			<div className='pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center px-4 max-sm:top-[5.5rem] sm:top-6'>
 				<div className='pointer-events-auto flex items-center gap-4 rounded-2xl border bg-card/85 px-5 py-2.5 shadow-[0_18px_30px_-24px_rgba(70,45,30,0.45)] backdrop-blur-md'>
 					<div className='flex flex-col justify-center'>
 						<h1 className='text-[13px] leading-none font-semibold text-white'>我的足迹</h1>
@@ -199,7 +201,7 @@ export default function Page() {
 								<span className='text-white'>{nameOf(province)}</span>
 							</div>
 						) : (
-							<p className='text-secondary mt-1.5 text-[10px]'>点省份进入 · 滚轮缩放 · 拖动平移</p>
+							<p className='text-secondary mt-1.5 text-[10px]'>点省份进入 · 滚轮/双指缩放 · 拖动平移</p>
 						)}
 					</div>
 
@@ -236,7 +238,7 @@ export default function Page() {
 					photo={infoPhoto}
 					cityName={cityRef?.cityName}
 					onClose={() => setInfoPhoto(null)}
-					onEdit={() => requestEdit(infoPhoto)}
+					onEdit={isAuth ? () => requestEdit(infoPhoto) : undefined}
 				/>
 			)}
 

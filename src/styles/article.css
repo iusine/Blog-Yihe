@@ -12,11 +12,14 @@
 /* Headings */
 .prose h1,
 .prose h2,
-.prose h3 {
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
     font-weight: 700;
-    line-height: 1.25;
+    line-height: 1.3;
     margin-top: 2em;
-    margin-bottom: 1.5em;
+    margin-bottom: 1em;
 
     &::before {
         content: '# ';
@@ -28,30 +31,42 @@
 }
 .prose h2 {
     font-size: 1.25rem;
+
+    &::before {
+        content: '## ';
+    }
 }
 .prose h3 {
     font-size: 1rem;
     font-weight: 600;
 
     &::before {
-        content: '## ';
-        @apply text-brand/60;
+        content: '### ';
     }
 }
 .prose h4 {
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.95rem;
+    font-weight: 600;
+
     &::before {
-        content: '### ';
-        @apply text-brand/60;
+        content: '#### ';
     }
 }
 .prose h5 {
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: 0.9rem;
+    font-weight: 600;
+
     &::before {
-        content: '#### ';
-        @apply text-brand/60;
+        content: '##### ';
+    }
+}
+.prose h6 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-secondary, #a3a3a3);
+
+    &::before {
+        content: '###### ';
     }
 }
 
@@ -195,6 +210,88 @@
     padding: 0.75em 1em;
     border-radius: 8px;
 }
+
+/* 警告框：> [!NOTE] / TIP / IMPORTANT / WARNING / CAUTION */
+.prose .admonition {
+    margin: 1.25em 0;
+    padding: 0.85em 1.1em;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-left: 3px solid var(--admonition-color, var(--color-brand));
+    border-radius: 10px;
+    background: var(--admonition-bg, rgba(255, 255, 255, 0.06));
+}
+.prose .admonition-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45em;
+    font-weight: 600;
+    color: var(--admonition-color, var(--color-brand));
+    margin-bottom: 0.35em;
+}
+.prose .admonition-title::before {
+    content: '';
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 999px;
+    background: currentColor;
+}
+.prose .admonition-body > :first-child {
+    margin-top: 0;
+}
+.prose .admonition-body > :last-child {
+    margin-bottom: 0;
+}
+.prose .admonition-note {
+    --admonition-color: #38bdf8;
+    --admonition-bg: rgba(56, 189, 248, 0.08);
+}
+.prose .admonition-tip {
+    --admonition-color: #34d399;
+    --admonition-bg: rgba(52, 211, 153, 0.08);
+}
+.prose .admonition-important {
+    --admonition-color: #a78bfa;
+    --admonition-bg: rgba(167, 139, 250, 0.08);
+}
+.prose .admonition-warning {
+    --admonition-color: #fbbf24;
+    --admonition-bg: rgba(251, 191, 36, 0.08);
+}
+.prose .admonition-caution {
+    --admonition-color: #fb7185;
+    --admonition-bg: rgba(251, 113, 133, 0.08);
+}
+
+/* 脚注 */
+.prose .footnote-ref {
+    line-height: 0;
+}
+.prose .footnote-ref a {
+    color: var(--color-brand);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0 0.15em;
+}
+.prose .footnotes {
+    margin-top: 2.5em;
+    padding-top: 1em;
+    border-top: 1px dashed rgba(255, 255, 255, 0.18);
+    font-size: 0.9em;
+    color: var(--color-secondary, #a3a3a3);
+}
+.prose .footnotes ol {
+    margin: 0.25em 0 0 1.25em;
+    list-style-type: decimal;
+}
+.prose .footnotes li {
+    margin: 0.35em 0;
+}
+.prose .footnote-backref {
+    color: var(--color-brand);
+    text-decoration: none;
+    margin-left: 0.25em;
+}
+
 
 /* HR */
 .prose hr {

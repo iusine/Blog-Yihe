@@ -1,223 +1,36 @@
-/* 首页由哪些卡片组成。 */
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { motion } from 'motion/react'
+import { useMemo, useState } from 'react'
+import { ChevronDown, ChevronRight, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { useMarkdownRender } from '@/hooks/use-markdown-render'
-import { pushAbout, type AboutData } from './services/push-about'
 import { useAuthStore } from '@/hooks/use-auth'
-import { useConfigStore } from '@/app/(home)/stores/config-store'
-import GithubSVG from '@/svgs/github.svg'
+import { confirmDialog } from '@/components/themed-dialog'
+import { pushAbout, type AboutData } from './services/push-about'
 import initialData from './list.json'
 
+type Section = AboutData['sections'][number]
+const categories = ['核心框架', '内容与渲染', '部署与数据', '体验与动效']
+const emptySection: Section = { id: '', title: '', category: categories[0], content: '' }
+
 export default function Page() {
-    const [data, setData] = useState<AboutData>(initialData as AboutData)
-    const [originalData, setOriginalData] = useState<AboutData>(initialData as AboutData)
-    const [isEditMode, setIsEditMode] = useState(false)
-    const [isSaving, setIsSaving] = useState(false)
-    const [isPreviewMode, setIsPreviewMode] = useState(false)
-    const keyInputRef = useRef<HTMLInputElement>(null)
+	const { isAuth } = useAuthStore()
+	const [data, setData] = useState<AboutData>(initialData as AboutData)
+	const [editing, setEditing] = useState(false)
+	const [draft, setDraft] = useState<Section>(emptySection)
+	const [saving, setSaving] = useState(false)
+	const [categoryOpen, setCategoryOpen] = useState(false)
+	const [expanded, setExpanded] = useState<Set<string>>(new Set(categories.slice(0, 1)))
+	const grouped = useMemo(() => categories.reduce<Record<string, Section[]>>((result, category) => { result[category] = data.sections.filter(section => (section.category || '核心框架') === category); return result }, {}), [data.sections])
+	const update = (key: keyof Section, value: string) => setDraft(previous => ({ ...previous, [key]: value }))
+	const openNew = () => { setDraft({ ...emptySection, id: `section-${Date.now()}` }); setEditing(true) }
+	const openEdit = (section: Section) => { setDraft({ ...section }); setEditing(true) }
+	const saveSection = () => { if (!draft.title.trim() || !draft.content.trim()) return toast.error('请填写标题和内容'); setData(previous => ({ ...previous, sections: previous.sections.some(item => item.id === draft.id) ? previous.sections.map(item => item.id === draft.id ? draft : item) : [...previous.sections, draft] })); setEditing(false) }
+	const removeSection = async (id: string) => {
+		const confirmed = await confirmDialog({ title: '删除技术条目', message: '确定删除这个技术条目吗？', confirmText: '删除', danger: true })
+		if (confirmed) setData(previous => ({ ...previous, sections: previous.sections.filter(item => item.id !== id) }))
+	}
+	const save = async () => { setSaving(true); try { await pushAbout(data); toast.success('关于页面已保存并同步') } catch (error) { toast.error(error instanceof Error ? error.message : '保存失败') } finally { setSaving(false) } }
+	const toggle = (category: string) => setExpanded(previous => { const next = new Set(previous); if (next.has(category)) next.delete(category); else next.add(category); return next })
 
-    const { isAuth, setPrivateKey } = useAuthStore()
-    const { siteContent } = useConfigStore()
-    const { content, loading } = useMarkdownRender(data.content)
-    const hideEditButton = siteContent.hideEditButton ?? false
-
-    const handleChoosePrivateKey = async (file: File) => {
-        try {
-            const text = await file.text()
-            setPrivateKey(text)
-            await handleSave()
-        } catch (error) {
-            console.error('Failed to read private key:', error)
-            toast.error('读取密钥文件失败')
-        }
-    }
-
-    const handleSaveClick = () => {
-        if (!isAuth) {
-            keyInputRef.current?.click()
-        } else {
-            handleSave()
-        }
-    }
-
-    const handleEnterEditMode = () => {
-        setIsEditMode(true)
-        setIsPreviewMode(false)
-    }
-
-    const handleSave = async () => {
-        setIsSaving(true)
-
-        try {
-            await pushAbout(data)
-
-            setOriginalData(data)
-            setIsEditMode(false)
-            setIsPreviewMode(false)
-            toast.success('保存成功！')
-        } catch (error: any) {
-            console.error('Failed to save:', error)
-            toast.error(`保存失败: ${error?.message || '未知错误'}`)
-        } finally {
-            setIsSaving(false)
-        }
-    }
-
-    const handleCancel = () => {
-        setData(originalData)
-        setIsEditMode(false)
-        setIsPreviewMode(false)
-    }
-
-    const buttonText = isAuth ? '保存' : '导入密钥'
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (!isEditMode && (e.ctrlKey || e.metaKey) && e.key === ',') {
-                e.preventDefault()
-                setIsEditMode(true)
-                setIsPreviewMode(false)
-            }
-        }
-
-        window.addEventListener('keydown', handleKeyDown)
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown)
-        }
-    }, [isEditMode])
-
-    return (
-        <>
-            <input
-                ref={keyInputRef}
-                type='file'
-                accept='.pem'
-                className='hidden'
-                onChange={async e => {
-                    const f = e.target.files?.[0]
-                    if (f) await handleChoosePrivateKey(f)
-                    if (e.currentTarget) e.currentTarget.value = ''
-                }}
-            />
-
-            <div className='flex flex-col items-center justify-center px-6 pt-32 pb-12 max-sm:px-0'>
-                <div className='w-full max-w-[800px]'>
-                    {isEditMode ? (
-                        isPreviewMode ? (
-                            <div className='space-y-6'>
-                                <div className='text-center'>
-                                    <h1 className='mb-4 text-4xl font-bold'>{data.title || '标题预览'}</h1>
-                                    <p className='text-secondary text-lg'>{data.description || '描述预览'}</p>
-                                </div>
-
-                                {loading ? (
-                                    <div className='text-secondary text-center'>预览渲染中...</div>
-                                ) : (
-                                    <div className='card relative p-6'>
-                                        <div className='prose prose-sm max-w-none'>{content}</div>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className='space-y-6'>
-                                <div className='space-y-4'>
-                                    <input
-                                        type='text'
-                                        placeholder='标题'
-                                        className='w-full px-4 py-3 text-center text-2xl font-bold'
-                                        value={data.title}
-                                        onChange={e => setData({ ...data, title: e.target.value })}
-                                    />
-                                    <input
-                                        type='text'
-                                        placeholder='描述'
-                                        className='w-full px-4 py-3 text-center text-lg'
-                                        value={data.description}
-                                        onChange={e => setData({ ...data, description: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className='card relative'>
-									<textarea
-                                        placeholder='Markdown 内容'
-                                        className='min-h-[400px] w-full resize-none text-sm'
-                                        value={data.content}
-                                        onChange={e => setData({ ...data, content: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        )
-                    ) : (
-                        <>
-                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className='mb-12 text-center'>
-                                <h1 className='mb-4 text-4xl font-bold'>{data.title}</h1>
-                                <p className='text-secondary text-lg'>{data.description}</p>
-                            </motion.div>
-
-                            {loading ? (
-                                <div className='text-secondary text-center'>加载中...</div>
-                            ) : (
-                                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className='card relative p-6'>
-                                    <div className='prose prose-sm max-w-none'>{content}</div>
-                                </motion.div>
-                            )}
-                        </>
-                    )}
-
-                    <div className='mt-8 flex items-center justify-center gap-6'>
-                        <motion.a
-                            href='https://github.com/YYsuni/2025-blog-public'
-                            target='_blank'
-                            rel='noreferrer'
-                            initial={{ opacity: 0, scale: 0.6 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0 }}
-                            className='bg-card flex h-[53px] w-[53px] items-center justify-center rounded-full border'>
-                            <GithubSVG />
-                        </motion.a>
-
-                    </div>
-                </div>
-            </div>
-
-            <motion.div initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} className='fixed top-4 right-6 z-10 flex gap-3 max-sm:hidden'>
-                {isEditMode ? (
-                    <>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleCancel}
-                            disabled={isSaving}
-                            className='rounded-xl border bg-white/10 px-6 py-2 text-sm'>
-                            取消
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setIsPreviewMode(prev => !prev)}
-                            disabled={isSaving}
-                            className={`rounded-xl border bg-white/10 px-6 py-2 text-sm`}>
-                            {isPreviewMode ? '继续编辑' : '预览'}
-                        </motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleSaveClick} disabled={isSaving} className='brand-btn px-6'>
-                            {isSaving ? '保存中...' : buttonText}
-                        </motion.button>
-                    </>
-                ) : (
-                    !hideEditButton && (
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleEnterEditMode}
-                            className='rounded-xl border bg-white/10 px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/20'>
-                            编辑
-                        </motion.button>
-                    )
-                )}
-            </motion.div>
-        </>
-    )
+	return <main className='min-h-screen px-6 pt-28 pb-16'><div className='bg-card mx-auto w-full max-w-5xl rounded-3xl border border-white/15 p-6 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:p-10'><header className='mx-auto w-full max-w-4xl'><div className='flex flex-wrap items-end justify-between gap-4'><div><h1 className='mt-2 text-3xl font-semibold text-white'>{data.title}</h1><p className='text-secondary mt-2 text-sm'>{data.description}</p></div>{isAuth && <div className='flex gap-2'><button type='button' onClick={openNew} className='brand-btn rounded-lg px-4 py-2 text-sm'><Plus className='h-4 w-4' />添加技术</button><button type='button' onClick={save} disabled={saving} className='rounded-lg border bg-white/10 px-4 py-2 text-sm text-white'><Save className='mr-1 inline h-4 w-4' />{saving ? '同步中…' : '保存同步'}</button></div>}</div></header><section className='mx-auto mt-8 w-full max-w-4xl space-y-5'><div className='bg-card rounded-2xl border p-7 backdrop-blur-xl'><h2 className='text-xl font-semibold text-white'>这个站点的技术栈</h2><p className='text-secondary mt-3 text-sm leading-7'>{data.intro}</p></div>{categories.map(category => { const items = grouped[category]; const isOpen = expanded.has(category); return <article key={category} className='bg-card overflow-hidden rounded-2xl border backdrop-blur-xl'><button type='button' onClick={() => toggle(category)} className='flex w-full items-center gap-3 px-5 py-4 text-left'><span className='flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-white/75'>{isOpen ? <ChevronDown className='h-4 w-4' /> : <ChevronRight className='h-4 w-4' />}</span><span className='font-semibold text-white'>{category}</span><span className='text-secondary ml-auto text-xs'>{items.length} 项</span></button>{isOpen && <div className='grid gap-3 border-t border-white/10 p-4 sm:grid-cols-2'>{items.map(item => <div key={item.id} className='rounded-xl border border-white/10 bg-white/[0.04] p-4'><div className='flex items-start justify-between gap-3'><h3 className='font-medium text-white'>{item.title}</h3>{isAuth && <div className='flex gap-1'><button type='button' onClick={() => openEdit(item)} className='rounded-md p-1 text-white/60 hover:bg-white/10'><Pencil className='h-3.5 w-3.5' /></button><button type='button' onClick={() => removeSection(item.id)} className='rounded-md p-1 text-white/60 hover:bg-red-400/15'><Trash2 className='h-3.5 w-3.5' /></button></div>}</div><p className='text-secondary mt-2 text-xs leading-relaxed'>{item.content}</p></div>)}</div>}</article>})}</section>{editing && isAuth && <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm'><div className='bg-card w-full max-w-lg rounded-2xl border p-6'><div className='flex justify-between'><h2 className='text-lg font-semibold text-white'>编辑技术条目</h2><button type='button' onClick={() => setEditing(false)}><X className='h-4 w-4 text-white/60' /></button></div><div className='mt-5 space-y-3 rounded-2xl border border-white/20 bg-white/[0.08] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_12px_30px_-20px_rgba(0,0,0,0.7)] backdrop-blur-md'><input value={draft.title} onChange={event => update('title', event.target.value)} placeholder='技术名称' className='w-full rounded-lg border bg-white/10 px-3 py-2 text-sm text-white' /><div className='relative'><button type='button' onClick={() => setCategoryOpen(value => !value)} className='flex w-full items-center justify-between rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-left text-sm text-white hover:bg-white/15'><span>{draft.category || categories[0]}</span><span className='text-white/60'>⌄</span></button>{categoryOpen && <div className='absolute top-full left-0 z-20 mt-1 w-full overflow-hidden rounded-lg border border-white/15 bg-[#18243a]/95 p-1 shadow-xl backdrop-blur-xl'>{categories.map(category => <button key={category} type='button' onClick={() => { update('category', category); setCategoryOpen(false) }} className='block w-full rounded-md px-3 py-2 text-left text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white'>{category}</button>)}</div>}</div><textarea value={draft.content} onChange={event => update('content', event.target.value)} placeholder='技术说明' rows={5} className='w-full resize-none rounded-lg border bg-white/10 px-3 py-2 text-sm text-white' /></div><div className='mt-5 flex justify-end gap-3'><button type='button' onClick={() => setEditing(false)} className='rounded-lg border bg-white/10 px-4 py-2 text-sm text-white/80'>取消</button><button type='button' onClick={saveSection} className='brand-btn rounded-lg px-5 py-2 text-sm'>确定</button></div></div></div>}</div></main>
 }

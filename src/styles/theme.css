@@ -1,4 +1,13 @@
 /*主题变量及主题相关规则*/
+
+@font-face {
+    font-family: 'Averia Gruesa Libre';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/averia-gruesa-libre.woff2') format('woff2');
+}
+
 @theme {
     --color-primary: #ffffff;
     --color-secondary: rgba(255, 255, 255, 0.7);

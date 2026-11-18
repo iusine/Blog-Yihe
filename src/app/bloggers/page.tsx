@@ -1,13 +1,17 @@
 /* 首页由哪些卡片组成。 */
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
 import GridView, { type Blogger } from './grid-view'
-import CreateDialog from './components/create-dialog'
+
+// 新建/编辑弹窗只有站主会打开，拆包让访客不下载上传与发布逻辑
+const CreateDialog = dynamic(() => import('./components/create-dialog'), { ssr: false })
 import { pushBloggers } from './services/push-bloggers'
 import { useAuthStore } from '@/hooks/use-auth'
+import { confirmDialog } from '@/components/themed-dialog'
 import { useConfigStore } from '@/app/(home)/stores/config-store'
 import initialList from './list.json'
 import type { AvatarItem } from './components/avatar-upload-dialog'
@@ -57,8 +61,14 @@ export default function Page() {
         }
     }
 
-    const handleDelete = (blogger: Blogger) => {
-        if (confirm(`确定要删除 ${blogger.name} 吗？`)) {
+    const handleDelete = async (blogger: Blogger) => {
+        const confirmed = await confirmDialog({
+            title: '删除博主',
+            message: `确定要删除 ${blogger.name} 吗？`,
+            confirmText: '删除',
+            danger: true
+        })
+        if (confirmed) {
             setBloggers(bloggers.filter(b => b.url !== blogger.url))
         }
     }
@@ -111,7 +121,7 @@ export default function Page() {
         setIsEditMode(false)
     }
 
-    const buttonText = isAuth ? '保存' : '导入密钥'
+    const buttonText = isAuth ? '保存' : '保存'
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -166,7 +176,7 @@ export default function Page() {
                         </motion.button>
                     </>
                 ) : (
-                    !hideEditButton && (
+                    !hideEditButton && isAuth && (
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}

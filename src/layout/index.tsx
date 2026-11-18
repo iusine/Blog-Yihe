@@ -10,6 +10,7 @@ import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon
 import { useSize, useSizeInit } from '@/hooks/use-size'
 import { useConfigStore } from '@/app/(home)/stores/config-store'
 import { ScrollTopButton } from '@/components/scroll-top-button'
+import { ThemedDialogHost } from '@/components/themed-dialog'
 import MusicCard from '@/components/music-card'
 
 export default function Layout({ children }: PropsWithChildren) {
@@ -65,7 +66,9 @@ export default function Layout({ children }: PropsWithChildren) {
                 {!maxSM && cardStyles.musicCard?.enabled !== false && <MusicCard />}
             </main>
 
-            {maxSM && init && <ScrollTopButton className='bg-brand/20 fixed right-6 bottom-8 z-50 shadow-md' />}
+            {maxSM && init && <ScrollTopButton className='bg-brand/20 fixed right-6 bottom-[calc(2rem+env(safe-area-inset-bottom))] z-50 shadow-md' />}
+
+            <ThemedDialogHost />
         </>
     )
 }

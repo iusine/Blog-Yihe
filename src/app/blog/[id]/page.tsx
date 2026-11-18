@@ -99,7 +99,7 @@ export default function Page() {
 				attachments={blog.config.attachments}
 			/>
 
-			<motion.button
+			{isAuth && <motion.button
 				initial={{ opacity: 0, scale: 0.6 }}
 				animate={{ opacity: 1, scale: 1 }}
 				whileHover={{ scale: 1.05 }}
@@ -107,7 +107,7 @@ export default function Page() {
 				onClick={handleEdit}
 				className='absolute top-4 right-6 rounded-xl border bg-white/10 px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:hidden'>
 				编辑
-			</motion.button>
+			</motion.button>}
 
 			{slug === 'liquid-grass' && <LiquidGrass />}
 		</>

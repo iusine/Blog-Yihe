@@ -6,14 +6,16 @@ import { toast } from 'sonner'
 import { useConfigStore } from './stores/config-store'
 import { useCenterStore } from '@/hooks/use-center'
 import { useRouter } from 'next/navigation'
-import { useSize } from '@/hooks/use-size'
 import { useAuthStore } from '@/hooks/use-auth'
 import { HomeDraggableLayer } from './home-draggable-layer'
+import { DialogModal } from '@/components/dialog-modal'
+
+// 身份认证口令的编码值（2333 → MjMzMw==），避免在界面代码中直接显示口令。
+const AUTH_PASSWORD_CODE = 'MjMzMw=='
 
 export default function WriteButton() {
     const center = useCenterStore()
     const { cardStyles, siteContent } = useConfigStore()
-    const { maxSM } = useSize()
     const router = useRouter()
     const styles = cardStyles.writeButtons
     const hiCardStyles = cardStyles.hiCard
@@ -24,6 +26,9 @@ export default function WriteButton() {
     const keyInputRef = useRef<HTMLInputElement>(null)
 
     const [show, setShow] = useState(false)
+    const [authOpen, setAuthOpen] = useState(false)
+    const [password, setPassword] = useState('')
+    const [authError, setAuthError] = useState('')
 
     useEffect(() => {
         setTimeout(() => setShow(true), styles.order * ANIMATION_DELAY * 1000)
@@ -34,7 +39,19 @@ export default function WriteButton() {
             router.push('/write')
             return
         }
-        // 没授权就先弹私钥选择，导入成功后再进编辑器
+        setPassword('')
+        setAuthError('')
+        setAuthOpen(true)
+    }
+
+    const verifyPassword = () => {
+        if (!/^\d+$/.test(password) || window.btoa(password) !== AUTH_PASSWORD_CODE) {
+            setAuthError('密码不正确，请重新输入')
+            setPassword('')
+            return
+        }
+        setAuthOpen(false)
+        // 密码正确后才允许选择 PEM，导入成功后再进入写作。
         keyInputRef.current?.click()
     }
 
@@ -46,15 +63,12 @@ export default function WriteButton() {
                 return
             }
             await setPrivateKey(text)
-            toast.success('私钥已导入，开始写作吧')
-            router.push('/write')
+            toast.success('身份认证成功，站主功能已开放')
         } catch (error) {
             console.error('Failed to read private key:', error)
             toast.error('读取密钥文件失败')
         }
     }
-
-    if (maxSM) return null
 
     if (!show) return null
 
@@ -62,11 +76,12 @@ export default function WriteButton() {
     const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y - clockCardStyles.offset - styles.height - CARD_SPACING / 2 - clockCardStyles.height
 
     return (
+        <>
         <HomeDraggableLayer cardKey='writeButtons' x={x} y={y} width={styles.width} height={styles.height}>
-            <motion.div initial={{ left: x, top: y }} animate={{ left: x, top: y }} className='absolute flex items-center gap-4'>
+            <motion.div initial={{ left: x, top: y }} animate={{ left: x, top: y }} className='absolute flex items-center gap-4 max-sm:static'>
                 <motion.button
                     onClick={handleWriteClick}
-                    title={isAuth ? '写文章' : '首次写作需要先导入 .pem 私钥'}
+                    title={isAuth ? '写文章' : '身份认证：导入 .pem 私钥'}
                     initial={{ opacity: 0, scale: 0.6 }}
                     animate={{ opacity: 1, scale: 1 }}
                     whileHover={{ scale: 1.05 }}
@@ -85,7 +100,7 @@ export default function WriteButton() {
                     )}
 
                     <PenSVG />
-                    <span>写文章</span>
+                    <span>{isAuth ? '写文章' : '身份认证'}</span>
                 </motion.button>
 
                 <input
@@ -101,5 +116,21 @@ export default function WriteButton() {
                 />
             </motion.div>
         </HomeDraggableLayer>
+        <DialogModal open={authOpen} onClose={() => setAuthOpen(false)} className='card w-[min(380px,92vw)] p-6'>
+            <form onSubmit={event => { event.preventDefault(); verifyPassword() }}>
+                <div className='mb-5 text-center'>
+                    <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/15 text-2xl'>🔐</div>
+                    <h2 className='mt-3 text-lg font-semibold text-white'>身份认证</h2>
+                    <p className='text-secondary mt-1 text-xs'>请输入认证密码后导入 PEM 私钥</p>
+                </div>
+                <input autoFocus value={password} onChange={event => { setPassword(event.target.value.replace(/\D/g, '')); setAuthError('') }} inputMode='numeric' type='password' placeholder='输入密码后进行密钥认证' className='focus:ring-brand w-full rounded-lg border bg-white/10 px-3 py-2.5 text-center tracking-[0.2em] text-white outline-none focus:ring-2' />
+                {authError && <p className='mt-2 text-center text-xs text-red-300'>{authError}</p>}
+                <div className='mt-5 flex gap-3'>
+                    <button type='button' onClick={() => setAuthOpen(false)} className='flex-1 rounded-lg border bg-white/10 px-4 py-2 text-sm text-white/80 hover:bg-white/15'>取消</button>
+                    <button type='submit' className='brand-btn flex-1 justify-center rounded-lg px-4 py-2 text-sm'>继续</button>
+                </div>
+            </form>
+        </DialogModal>
+        </>
     )
 }

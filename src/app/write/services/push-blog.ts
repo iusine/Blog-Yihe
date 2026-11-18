@@ -4,7 +4,7 @@ import type { TreeItem } from '@/lib/github-client'
 import type { ImageItem, AttachmentItem, AttachmentMeta } from '../types'
 import { toast } from 'sonner'
 import { formatDateTimeLocal } from '../stores/write-store'
-import { extractFirstH1, normalizeLeadingH1, stripFirstH1, stripInlineMarkdown } from '../lib/md-title'
+import { extractFirstH1, normalizeLeadingH1, stripInlineMarkdown, stripLeadingH1IfMatches } from '../lib/md-title'
 
 export type PushBlogParams = {
 	form: {
@@ -89,8 +89,8 @@ export async function pushBlog(params: PushBlogParams): Promise<void> {
 				}
 			}
 
-			// Keep published markdown consistent with existing posts: title lives in config
-			mdToUpload = stripFirstH1(mdToUpload)
+			// 标题独立存放在 config；正文首行若只是重复标题则去掉
+			mdToUpload = stripLeadingH1IfMatches(mdToUpload, title)
 
 			toast.info('正在创建文件...')
 

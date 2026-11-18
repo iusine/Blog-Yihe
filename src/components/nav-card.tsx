@@ -11,18 +11,18 @@ import { CARD_SPACING } from '@/consts'
 import ScrollOutlineSVG from '@/svgs/scroll-outline.svg'
 import ScrollFilledSVG from '@/svgs/scroll-filled.svg'
 import PenSVG from '@/svgs/pen.svg'
+import PenActiveSVG from '@/svgs/pen.svg'
 import ProjectsFilledSVG from '@/svgs/projects-filled.svg'
 import ProjectsOutlineSVG from '@/svgs/projects-outline.svg'
 import ShareFilledSVG from '@/svgs/share-filled.svg'
 import ShareOutlineSVG from '@/svgs/share-outline.svg'
-import WebsiteFilledSVG from '@/svgs/website-filled.svg'
-import WebsiteOutlineSVG from '@/svgs/website-outline.svg'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
 import { cn } from '@/lib/utils'
 import { useSize } from '@/hooks/use-size'
 import { useConfigStore } from '@/app/(home)/stores/config-store'
 import { HomeDraggableLayer } from '@/app/(home)/home-draggable-layer'
+import { Compass } from 'lucide-react'
 
 const list = [
     {
@@ -33,7 +33,7 @@ const list = [
     },
     {
         icon: PenSVG,
-        iconActive: PenSVG,
+        iconActive: PenActiveSVG,
         label: '随笔文案',
         href: '/essay'
     },
@@ -50,10 +50,10 @@ const list = [
         href: '/share'
     },
     {
-        icon: WebsiteOutlineSVG,
-        iconActive: WebsiteFilledSVG,
-        label: '我的技能',
-        href: '/skills'
+        icon: Compass,
+        iconActive: Compass,
+        label: '了解更多',
+        href: '/more'
     }
 ]
 
@@ -102,9 +102,9 @@ export default function NavCard() {
 
     const size = useMemo(() => {
         if (form === 'mini') return { width: 64, height: 64 }
-        else if (form === 'icons') return { width: 340, height: 64 }
+        else if (form === 'icons') return { width: maxSM && center.width ? Math.min(340, Math.max(240, center.width - 32)) : 340, height: 64 }
         else return { width: styles.width, height: styles.height }
-    }, [form, styles])
+    }, [form, styles, maxSM, center.width])
 
     useEffect(() => {
         if (form === 'icons' && activeIndex !== undefined && hoveredIndex !== activeIndex) {

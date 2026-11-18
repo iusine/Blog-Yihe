@@ -1,0 +1,6 @@
+[
+  { "id": "typescript", "name": "TypeScript", "category": "前端", "level": "80%", "description": "用于构建类型安全、易维护的应用。" },
+  { "id": "react", "name": "React", "category": "前端", "level": "65%", "description": "用组件化方式搭建交互界面。" },
+  { "id": "nextjs", "name": "Next.js", "category": "前端", "level": "65%", "description": "用于全栈页面、路由和内容发布。" },
+  { "id": "tailwind", "name": "Tailwind CSS", "category": "工具", "level": "80%", "description": "快速构建统一的界面样式。" }
+]

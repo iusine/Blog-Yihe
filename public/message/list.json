@@ -1,1 +1,19 @@
-[]
+[
+	{
+		"id": "mwkfgg51fccx6w",
+		"createdAt": "2026-11-17T08:25:30.037Z",
+		"visibility": "public",
+		"anonymous": true,
+		"content": "哇塞，好有创意的网站。",
+		"sent": false
+	},
+	{
+		"id": "mwkfbwrag165xy",
+		"createdAt": "2026-11-17T08:21:58.294Z",
+		"visibility": "public",
+		"anonymous": false,
+		"author": "站主",
+		"content": "欢迎大家留言~",
+		"sent": false
+	}
+]

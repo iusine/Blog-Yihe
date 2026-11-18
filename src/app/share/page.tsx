@@ -1,13 +1,17 @@
 /* 推荐分享：编辑（取消/添加/保存/编辑/删除）都需要先导入私钥才会出现。 */
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
 import GridView from './grid-view'
-import CreateDialog from './components/create-dialog'
+
+// 新建/编辑弹窗只有站主会打开，拆包让访客不下载上传与发布逻辑
+const CreateDialog = dynamic(() => import('./components/create-dialog'), { ssr: false })
 import { pushShares, type ShareRow } from './services/push-shares'
 import { useAuthStore } from '@/hooks/use-auth'
+import { confirmDialog } from '@/components/themed-dialog'
 import initialList from './list.json'
 import type { Share } from './components/share-card'
 import type { LogoItem } from './components/logo-upload-dialog'
@@ -55,9 +59,15 @@ export default function Page() {
         if (logoItem) setLogoItems(prev => new Map(prev).set(row.__key, logoItem))
     }
 
-    const handleDelete = (share: Share) => {
+    const handleDelete = async (share: Share) => {
         const key = (share as ShareRow).__key
-        if (!confirm(`确定要删除 ${share.name} 吗？`)) return
+        const confirmed = await confirmDialog({
+            title: '删除分享',
+            message: `确定要删除 ${share.name} 吗？`,
+            confirmText: '删除',
+            danger: true
+        })
+        if (!confirmed) return
 
         setShares(prev => prev.filter(item => item.__key !== key))
         setLogoItems(prev => {
@@ -175,15 +185,7 @@ export default function Page() {
                         className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/20'>
                         编辑
                     </motion.button>
-                ) : (
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => keyInputRef.current?.click()}
-                        className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/20'>
-                        导入密钥
-                    </motion.button>
-                )}
+                ) : null}
             </motion.div>
 
             {isCreateDialogOpen && <CreateDialog share={null} onClose={() => setIsCreateDialogOpen(false)} onSave={handleSaveShare} />}

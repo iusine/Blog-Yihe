@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { ArrowLeft, Shuffle, Upload } from 'lucide-react'
 import type { Photo } from '../types'
+import { useSize } from '@/hooks/use-size'
 import { scatterLayout, type ScatterPosition } from '../lib/photos'
 
 type PhotoWallProps = {
@@ -16,23 +17,46 @@ type PhotoWallProps = {
 	onOpenPhoto: (photo: Photo) => void
 }
 
+const clampPercent = (value: number, inset: number) => Math.min(100 - inset, Math.max(inset, value))
+
 export default function PhotoWall({ cityName, provinceName, photos, canUpload, onClose, onUpload, onOpenPhoto }: PhotoWallProps) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const dragRef = useRef<{ id: string; startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(null)
 	const zRef = useRef(200)
+	const { maxSM } = useSize()
 	const [salt, setSalt] = useState(0)
 	const [positions, setPositions] = useState<Record<string, ScatterPosition>>({})
+	const [canvas, setCanvas] = useState({ width: 0, height: 0 })
+
+	const insetX = maxSM && canvas.width ? Math.min(40, (99 / canvas.width) * 100) : 4
+	const insetY = maxSM && canvas.height ? Math.min(38, (88 / canvas.height) * 100) : 8
+	const layoutKey = maxSM && canvas.width ? `${Math.round(canvas.width)}x${Math.round(canvas.height)}` : 'desktop'
+	const lastLayoutKeyRef = useRef('')
 
 	useEffect(() => {
-		const layout = scatterLayout(photos, salt)
+		const element = containerRef.current
+		if (!element) return
+		const observer = new ResizeObserver(([entry]) => {
+			setCanvas({ width: entry.contentRect.width, height: entry.contentRect.height })
+		})
+		observer.observe(element)
+		return () => observer.disconnect()
+	}, [])
+
+	useEffect(() => {
+		const layout = scatterLayout(photos, salt, maxSM ? { paddingX: insetX, paddingY: insetY } : undefined)
+		const reset = lastLayoutKeyRef.current !== layoutKey
+		lastLayoutKeyRef.current = layoutKey
 		setPositions(previous => {
+			const prior = reset ? {} : previous
 			const next: Record<string, ScatterPosition> = {}
 			for (const [id, position] of layout) {
-				next[id] = previous[id] ?? position
+				const source = prior[id] ?? position
+				next[id] = { ...source, x: clampPercent(source.x, insetX), y: clampPercent(source.y, insetY) }
 			}
 			return next
 		})
-	}, [photos, salt])
+	}, [photos, salt, maxSM, insetX, insetY, layoutKey])
 
 	const ordered = useMemo(() => photos, [photos])
 
@@ -63,12 +87,23 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 		const rect = containerRef.current?.getBoundingClientRect()
 		if (!drag || !rect) return
 
-		const dx = ((event.clientX - drag.startX) / rect.width) * 100
-		const dy = ((event.clientY - drag.startY) / rect.height) * 100
-		if (Math.hypot(dx, dy) > 0.4) drag.moved = true
+		const dxPx = event.clientX - drag.startX
+		const dyPx = event.clientY - drag.startY
+		const dx = (dxPx / rect.width) * 100
+		const dy = (dyPx / rect.height) * 100
+		if (Math.hypot(dxPx, dyPx) > 6) drag.moved = true
 
 		setPositions(previous =>
-			previous[drag.id] ? { ...previous, [drag.id]: { ...previous[drag.id], x: drag.originX + dx, y: drag.originY + dy } } : previous
+			previous[drag.id]
+				? {
+						...previous,
+						[drag.id]: {
+							...previous[drag.id],
+							x: clampPercent(drag.originX + dx, insetX),
+							y: clampPercent(drag.originY + dy, insetY)
+						}
+					}
+				: previous
 		)
 	}
 
@@ -118,13 +153,7 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 							<Shuffle className='h-3.5 w-3.5' />
 							重新散落
 						</button>
-						<button
-							type='button'
-							onClick={onUpload}
-							className='brand-btn flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs'>
-							<Upload className='h-3.5 w-3.5' />
-							{canUpload ? '上传照片' : '导入私钥后上传'}
-						</button>
+						{canUpload && <button type='button' onClick={onUpload} className='brand-btn flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs'><Upload className='h-3.5 w-3.5' />上传照片</button>}
 					</div>
 				</header>
 
@@ -133,14 +162,13 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 					className='relative flex-1 touch-none overflow-hidden'
 					onPointerMove={handlePointerMove}
 					onPointerUp={handlePointerUp}
+					onPointerCancel={handlePointerUp}
 					onPointerLeave={handlePointerUp}>
 					{photos.length === 0 && (
 						<div className='flex h-full flex-col items-center justify-center gap-3 text-center'>
 							<div className='text-5xl'>🖼️</div>
 							<p className='text-lg font-medium text-white'>这座城市还没有照片</p>
-							<p className='text-secondary max-w-xs text-xs leading-relaxed'>
-								点右上角「上传照片」，第一次上传会要求导入 GitHub App 的 .pem 私钥。
-							</p>
+							{canUpload && <p className='text-secondary max-w-xs text-xs leading-relaxed'>点右上角「上传照片」添加第一张照片。</p>}
 							<button type='button' onClick={onUpload} className='brand-btn mt-2 rounded-xl px-5 py-2 text-sm'>
 								上传第一张
 							</button>
@@ -157,8 +185,8 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 								onPointerDown={event => handlePointerDown(event, photo)}
 								className='absolute cursor-grab transition-shadow duration-200 select-none active:cursor-grabbing'
 								style={{
-									left: `${position.x}%`,
-									top: `${position.y}%`,
+									left: `${clampPercent(position.x, insetX)}%`,
+									top: `${clampPercent(position.y, insetY)}%`,
 									zIndex: position.z,
 									transform: `translate(-50%, -50%) rotate(${position.rotate}deg) scale(${position.scale})`
 								}}>
@@ -166,8 +194,9 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 									<img
 										src={photo.src}
 										alt={photo.title}
-										className='block rounded-[4px]'
-										style={{ maxHeight: 190, maxWidth: 330, width: 'auto', height: 'auto' }}
+										loading='lazy'
+										decoding='async'
+										className='block h-auto w-auto max-h-[190px] max-w-[330px] rounded-[4px] max-sm:max-h-[130px] max-sm:max-w-[180px]'
 										draggable={false}
 									/>
 									<span className='mt-1.5 flex max-w-full items-center justify-between gap-2 px-1 text-[10px] text-white'>
@@ -180,7 +209,7 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 					})}
 
 					{photos.length > 0 && (
-						<p className='text-secondary pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px]'>
+						<p className='text-secondary pointer-events-none absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 text-[11px] max-sm:bottom-2 max-sm:whitespace-nowrap max-sm:text-[10px]'>
 							拖动照片可以重新摆放 · 点一下查看照片信息
 						</p>
 					)}

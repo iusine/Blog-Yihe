@@ -36,13 +36,18 @@ const CAPITAL_CODE = '110000'
 
 /** 小地方挤在一起时，手动把标签推开，避免互相压住 */
 const LABEL_NUDGE: Record<string, { dx: number; dy: number }> = {
-	'110000': { dx: -6, dy: -12 },
-	'120000': { dx: 8, dy: 12 },
-	'310000': { dx: 10, dy: -2 },
+	'110000': { dx: -6, dy: -17 },
+	'120000': { dx: 8, dy: 16 },
+	'310000': { dx: 10, dy: -14 },
 	'810000': { dx: 14, dy: -10 },
 	'820000': { dx: -16, dy: 12 },
-	'460000': { dx: 0, dy: 10 }
+	'460000': { dx: 0, dy: 15 }
 }
+
+/** 省份标签默认向上让出一点空间，给省会红圈 / 首都五角星留位置 */
+const LABEL_MARKER_GAP = { dx: 0, dy: -14 }
+/** 省图里的城市名向上让开，别压住城市圆点 */
+const CITY_LABEL_DOT_GAP = { dx: 0, dy: -17 }
 
 type MapViewProps = {
 	china: GeoCollection
@@ -73,12 +78,19 @@ export default function MapView({
 	const sceneRef = useRef<HTMLDivElement>(null)
 	const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(null)
 	const movedRef = useRef(false)
+	const pointersRef = useRef(new Map<number, { x: number; y: number }>())
+	const pinchRef = useRef<{ distance: number; centerX: number; centerY: number; camera: Camera } | null>(null)
 
 	const [size, setSize] = useState({ width: 0, height: 0 })
 	const [camera, setCamera] = useState<Camera>({ scale: 1, x: 0, y: 0 })
+	const cameraRef = useRef(camera)
 	const [dragging, setDragging] = useState(false)
 	const [hoveredCode, setHoveredCode] = useState<string | null>(null)
 	const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string } | null>(null)
+
+	useEffect(() => {
+		cameraRef.current = camera
+	}, [camera])
 
 	const chinaFeatures = useMemo(() => china.features.filter(isInteractive), [china])
 	const chinaBounds = useMemo(() => featuresBounds(chinaFeatures, { minLat: BOUNDS_MIN_LAT }), [chinaFeatures])
@@ -195,8 +207,38 @@ export default function MapView({
 		return () => element.removeEventListener('wheel', handleWheel)
 	}, [zoomBy])
 
+	/** 屏幕坐标 → 相对场景中心的坐标，和 camera.x / y 同一坐标系 */
+	const toScenePoint = (clientX: number, clientY: number) => {
+		const rect = sceneRef.current?.getBoundingClientRect()
+		if (!rect) return { x: 0, y: 0 }
+		return { x: clientX - rect.left - rect.width / 2, y: clientY - rect.top - rect.height / 2 }
+	}
+
 	const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-		if ((event.target as HTMLElement).closest('[data-pin]')) return
+		pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+		setTooltip(null)
+
+		// 第二根手指落下：从拖动切换到双指缩放
+		if (pointersRef.current.size >= 2) {
+			const [first, second] = [...pointersRef.current.values()]
+			const a = toScenePoint(first.x, first.y)
+			const b = toScenePoint(second.x, second.y)
+			pinchRef.current = {
+				distance: Math.hypot(b.x - a.x, b.y - a.y),
+				centerX: (a.x + b.x) / 2,
+				centerY: (a.y + b.y) / 2,
+				camera: cameraRef.current
+			}
+			dragRef.current = null
+			movedRef.current = true
+			setDragging(true)
+			return
+		}
+
+		if ((event.target as HTMLElement).closest('[data-pin]')) {
+			dragRef.current = null
+			return
+		}
 		dragRef.current = {
 			startX: event.clientX,
 			startY: event.clientY,
@@ -205,10 +247,38 @@ export default function MapView({
 			moved: false
 		}
 		setDragging(true)
-		setTooltip(null)
 	}
 
 	const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+		if (pointersRef.current.has(event.pointerId)) {
+			pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+		}
+
+		const pinch = pinchRef.current
+		if (pinch && pointersRef.current.size >= 2) {
+			const [first, second] = [...pointersRef.current.values()]
+			const a = toScenePoint(first.x, first.y)
+			const b = toScenePoint(second.x, second.y)
+			const distance = Math.hypot(b.x - a.x, b.y - a.y)
+			if (pinch.distance < 1) return
+
+			const centerX = (a.x + b.x) / 2
+			const centerY = (a.y + b.y) / 2
+			const factor = distance / pinch.distance
+
+			setCamera(() => {
+				const nextScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinch.camera.scale * factor))
+				const ratio = nextScale / pinch.camera.scale
+				return {
+					scale: nextScale,
+					x: centerX - (pinch.centerX - pinch.camera.x) * ratio,
+					y: centerY - (pinch.centerY - pinch.camera.y) * ratio
+				}
+			})
+			movedRef.current = true
+			return
+		}
+
 		const drag = dragRef.current
 		if (!drag) return
 		const dx = event.clientX - drag.startX
@@ -217,8 +287,26 @@ export default function MapView({
 		setCamera(previous => ({ ...previous, x: drag.originX + dx, y: drag.originY + dy }))
 	}
 
-	const endDrag = () => {
-		movedRef.current = dragRef.current?.moved ?? false
+	const endDrag = (event?: React.PointerEvent<HTMLDivElement>) => {
+		if (event) pointersRef.current.delete(event.pointerId)
+		else pointersRef.current.clear()
+		pinchRef.current = null
+
+		const remaining = [...pointersRef.current.values()]
+		if (remaining.length === 1) {
+			// 捏合过程中抬起一根手指：剩下的手指继续当作拖动，避免视角跳回
+			dragRef.current = {
+				startX: remaining[0].x,
+				startY: remaining[0].y,
+				originX: cameraRef.current.x,
+				originY: cameraRef.current.y,
+				moved: true
+			}
+			setDragging(true)
+			return
+		}
+
+		movedRef.current = dragRef.current?.moved ?? movedRef.current
 		dragRef.current = null
 		setDragging(false)
 	}
@@ -255,7 +343,7 @@ export default function MapView({
 					y: percent.y,
 					text: shortProvinceName(code, name),
 					priority: area,
-					offset: LABEL_NUDGE[code]
+					offset: LABEL_NUDGE[code] ?? LABEL_MARKER_GAP
 				}
 			]
 		})
@@ -274,7 +362,9 @@ export default function MapView({
 					x: percent.x,
 					y: percent.y,
 					text: shortCityName(name),
-					priority: (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY)
+					priority: (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY),
+					// 名字往上让开，给城市圆点留位置
+					offset: CITY_LABEL_DOT_GAP
 				}
 			]
 		})
@@ -295,18 +385,73 @@ export default function MapView({
 		[provinceLabelInputs, projectToScreen]
 	)
 
+	/** 城市圆点在屏幕上的占位，让地名避开，避免字盖住圆点导致点错城市 */
+	const cityDotObstacles = useMemo(
+		() =>
+			cityPaths.flatMap(({ feature }) => {
+				const center = centerOf(feature)
+				if (!center) return []
+				const point = projectToScreen(toPercent(center))
+				return [{ x: point.x, y: point.y, radius: 7 }]
+			}),
+		[cityPaths, projectToScreen, toPercent]
+	)
+
 	const cityLabels = useMemo(
 		() =>
 			placeLabels(cityLabelInputs, {
 				project: projectToScreen,
 				fontSize: CITY_FONT,
+				obstacles: cityDotObstacles,
 				isBold: label => {
 					const path = cityPaths.find(item => item.code === label.key)
 					return path ? isCityCapital(path.name) : false
 				}
 			}),
-		[cityLabelInputs, projectToScreen, cityPaths, isCityCapital]
+		[cityLabelInputs, projectToScreen, cityDotObstacles, cityPaths, isCityCapital]
 	)
+
+	/**
+	 * 地图圆点：画在屏幕空间，和文字标注同一套相机换算。
+	 * 全国视图是省会红圈 + 首都五角星；省图里省会用红色实心圆、其他城市用黑色实心圆。
+	 * 圆点本身就是按钮，点它一定能进入对应地图 / 照片墙。
+	 */
+	const mapMarkers = useMemo(() => {
+		if (!province) {
+			return chinaPaths.flatMap(({ feature, code, name }) => {
+				if (!PROVINCE_CAPITALS[code]) return []
+				const center = centerOf(feature)
+				if (!center) return []
+				const point = projectToScreen(toPercent(center))
+				return [
+					{
+						key: code,
+						name,
+						x: point.x,
+						y: point.y,
+						shape: code === CAPITAL_CODE ? ('star' as const) : ('ring' as const),
+						onClick: () => onProvinceClick(feature)
+					}
+				]
+			})
+		}
+
+		return cityPaths.flatMap(({ feature, code, name }) => {
+			const center = centerOf(feature)
+			if (!center) return []
+			const point = projectToScreen(toPercent(center))
+			return [
+				{
+					key: code,
+					name,
+					x: point.x,
+					y: point.y,
+					shape: isCityCapital(name) ? ('capital-dot' as const) : ('city-dot' as const),
+					onClick: () => onCityClick(feature)
+				}
+			]
+		})
+	}, [province, chinaPaths, cityPaths, projectToScreen, toPercent, onProvinceClick, onCityClick, isCityCapital])
 
 	return (
 		<div
@@ -316,6 +461,7 @@ export default function MapView({
 			onPointerDown={handlePointerDown}
 			onPointerMove={handlePointerMove}
 			onPointerUp={endDrag}
+			onPointerCancel={endDrag}
 			onPointerLeave={endDrag}>
 			<div className='absolute inset-0 flex items-center justify-center'>
 				<div
@@ -363,6 +509,10 @@ export default function MapView({
 										data-adcode={code}
 										d={d}
 										className='cursor-pointer transition-[fill,opacity] duration-200'
+										onPointerDown={event => {
+											event.stopPropagation()
+											movedRef.current = false
+										}}
 										stroke='rgba(91, 66, 63, 0.4)'
 										strokeWidth={strokeUnits(1.1)}
 										fill={isHovered ? '#7fd4ea' : isActive ? '#8fdcef' : baseFill}
@@ -389,6 +539,10 @@ export default function MapView({
 										data-adcode={code}
 										d={d}
 										className='cursor-pointer transition-[fill] duration-200'
+										onPointerDown={event => {
+											event.stopPropagation()
+											movedRef.current = false
+										}}
 										stroke='rgba(91, 66, 63, 0.28)'
 										strokeWidth={strokeUnits(1)}
 										fill={isHovered ? '#8fdcef' : hasPhotos ? '#bfe8f4' : '#f7fafb'}
@@ -408,18 +562,18 @@ export default function MapView({
 						</div>
 
 						{province &&
-							cityPaths.map(({ feature, code, name }) => {
+							cityPaths.map(({ feature, code }) => {
 								const center = centerOf(feature)
 								if (!center) return null
 								const position = toPercent(center)
 								const photos = photosByCity.get(code) ?? []
+								if (photos.length === 0) return null
 								return (
 									<CityPin
 										key={code}
 										x={position.x}
 										y={position.y}
 										scale={camera.scale}
-										name={name}
 										photos={photos}
 										onOpen={() => onCityClick(feature)}
 									/>
@@ -431,10 +585,60 @@ export default function MapView({
 
 			{/* 文字标注层：在倾斜平面之外，用相机变换算出位置，所以字永远是正的 */}
 			<div className='pointer-events-none absolute inset-0 z-20 overflow-hidden'>
+				{mapMarkers.map(marker => (
+					<button
+						key={marker.key}
+						type='button'
+						aria-label={marker.name}
+						className='group pointer-events-auto absolute z-10 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center'
+						style={{ left: `calc(50% + ${marker.x}px)`, top: `calc(50% + ${marker.y}px)` }}
+						onPointerDown={event => {
+							event.stopPropagation()
+							movedRef.current = false
+						}}
+						onMouseEnter={event => {
+							setHoveredCode(marker.key)
+							setTooltip({ x: event.clientX, y: event.clientY, name: marker.name })
+						}}
+						onMouseLeave={() => {
+							setHoveredCode(null)
+							setTooltip(null)
+						}}
+						onClick={marker.onClick}>
+						{marker.shape === 'star' ? (
+							<svg
+								width={16}
+								height={16}
+								viewBox='0 0 24 24'
+								className='block drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)] transition-transform duration-200 group-hover:scale-110'
+								aria-hidden>
+								<path
+									d='M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.57l-5.9 3.1 1.13-6.57L2.45 9.44l6.6-.96z'
+									fill='#e03131'
+									stroke='#fff'
+									strokeWidth={1.4}
+									strokeLinejoin='round'
+								/>
+							</svg>
+						) : marker.shape === 'ring' ? (
+							<span className='block h-[9px] w-[9px] rounded-full border-2 border-[#e03131] bg-white/60 shadow-[0_0_0_1.5px_rgba(255,255,255,0.9)] transition-transform duration-200 group-hover:scale-125' />
+						) : (
+							<span
+								className={
+									marker.shape === 'capital-dot'
+										? 'block h-[11px] w-[11px] rounded-full border border-white bg-[#e03131] shadow-[0_0_0_1.5px_rgba(255,255,255,0.9)] transition-transform duration-200 group-hover:scale-125'
+										: 'block h-[9px] w-[9px] rounded-full border border-white bg-[#241c19] shadow-[0_0_0_1.5px_rgba(255,255,255,0.9)] transition-transform duration-200 group-hover:scale-125'
+								}
+							/>
+						)}
+					</button>
+				))}
 				{(province ? cityLabels : provinceLabels).map(label => (
-					<span
+					<button
 						key={label.key}
-						className='absolute whitespace-nowrap text-[#3a2b28]'
+						type='button'
+						aria-label={label.text}
+						className='pointer-events-auto absolute cursor-pointer whitespace-nowrap text-[#3a2b28]'
 						style={{
 							left: `calc(50% + ${label.left}px)`,
 							top: `calc(50% + ${label.top}px)`,
@@ -443,9 +647,16 @@ export default function MapView({
 							fontWeight: label.bold ? 700 : 500,
 							letterSpacing: province ? 0.2 : 0.8,
 							textShadow: '0 0 3px rgba(255,255,255,0.95), 0 0 7px rgba(255,255,255,0.75)'
+						}}
+						onMouseEnter={() => setHoveredCode(label.key)}
+						onMouseLeave={() => setHoveredCode(null)}
+						onClick={() => {
+							const feature = (province ? cityPaths : chinaPaths).find(item => item.code === label.key)?.feature
+							if (!feature) return
+							handleFeatureClick(feature, province ? onCityClick : onProvinceClick)
 						}}>
 						{label.text}
-					</span>
+					</button>
 				))}
 			</div>
 
@@ -459,25 +670,25 @@ export default function MapView({
 			)}
 
 			{/* 缩放控件 */}
-			<div className='absolute right-5 bottom-6 flex flex-col gap-2'>
+			<div className='absolute right-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] flex flex-col gap-2'>
 				<button
 					type='button'
 					onClick={() => zoomBy(1.35)}
-					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20'
+					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:h-10 max-sm:w-10'
 					aria-label='放大'>
 					<Plus className='h-4 w-4' />
 				</button>
 				<button
 					type='button'
 					onClick={() => zoomBy(0.74)}
-					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20'
+					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:h-10 max-sm:w-10'
 					aria-label='缩小'>
 					<Minus className='h-4 w-4' />
 				</button>
 				<button
 					type='button'
 					onClick={onReset}
-					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20'
+					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:h-10 max-sm:w-10'
 					aria-label='回到全国'>
 					<RefreshCcw className='h-3.5 w-3.5' />
 				</button>

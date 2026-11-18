@@ -4,7 +4,9 @@ import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer, NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import { useMemo } from 'react'
 import katex from 'katex'
+import 'katex/dist/katex.min.css'
 import { cn } from '@/lib/utils'
+import { promptDialog } from '@/components/themed-dialog'
 
 /**
  * 公式块（Typora 的「公式块」）。
@@ -63,8 +65,14 @@ function MathBlockView({ node, updateAttributes, selected }: NodeViewProps) {
 		}
 	}, [latex])
 
-	const edit = () => {
-		const next = window.prompt('编辑公式（LaTeX，不用写 $$）', latex)
+	const edit = async () => {
+		const next = await promptDialog({
+			title: '编辑公式',
+			message: '输入 LaTeX 源码，不用写 $$。',
+			defaultValue: latex,
+			multiline: true,
+			confirmText: '保存'
+		})
 		if (next === null) return
 		updateAttributes({ latex: next })
 	}

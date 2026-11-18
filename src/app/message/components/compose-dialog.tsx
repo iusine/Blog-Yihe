@@ -9,6 +9,7 @@ import { buildMailBody, contentLimit, OWNER_EMAIL, type MessageDraft } from '../
 
 type Props = {
 	onClose: () => void
+	isOwner: boolean
 	/** 站主公钥（没有就无法使用「代发」和「仅站主」两个功能） */
 	ownerPublicKey: string | null
 	onSubmitted: (result: { ok: boolean; fallback?: boolean }) => void
@@ -16,8 +17,8 @@ type Props = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: Props) {
-	const [author, setAuthor] = useState('')
+export default function ComposeDialog({ onClose, ownerPublicKey, isOwner, onSubmitted }: Props) {
+	const [author, setAuthor] = useState(isOwner ? '站主' : '')
 	const [anonymous, setAnonymous] = useState(false)
 	const [content, setContent] = useState('')
 	const [sendToOther, setSendToOther] = useState(false)
@@ -28,19 +29,27 @@ export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: 
 	const limit = contentLimit(sendToOther)
 	const encryptReady = Boolean(ownerPublicKey)
 	const remaining = limit - content.length
+	const effectiveAuthor = isOwner ? '站主' : author.trim()
+
+	useEffect(() => {
+		if (isOwner) {
+			setAuthor('站主')
+			setAnonymous(false)
+		}
+	}, [isOwner])
 
 	useEffect(() => {
 		if (content.length > limit) setContent(prev => prev.slice(0, limit))
 	}, [limit, content.length])
 
 	const openMailFallback = () => {
-		const body = buildMailBody({ content, author, anonymous })
+		const body = buildMailBody({ content, author: effectiveAuthor, anonymous: isOwner ? false : anonymous })
 		const subject = encodeURIComponent('留言墙 · 需要代发的留言')
 		window.location.href = `mailto:${OWNER_EMAIL}?subject=${subject}&body=${encodeURIComponent(body)}`
 	}
 
 	const handleSubmit = async () => {
-		if (!anonymous && !author.trim()) {
+		if (!isOwner && !anonymous && !author.trim()) {
 			toast.error('请填写留言者名字，或勾选「匿名」')
 			return
 		}
@@ -70,7 +79,7 @@ export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: 
 				// 只有站主能看：把留言者和正文一起加密
 				cipher = await encryptForOwner(
 					JSON.stringify({
-						author: anonymous ? '' : author.trim(),
+						author: isOwner ? '站主' : anonymous ? '' : author.trim(),
 						content: content.trim(),
 						deliverEmail: sendToOther ? deliverEmail.trim() : ''
 					}),
@@ -83,8 +92,8 @@ export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: 
 			}
 
 			const payload: MessageDraft & { visibility: 'public' | 'owner'; cipher?: string; deliverCipher?: string } = {
-				author: author.trim(),
-				anonymous,
+				author: effectiveAuthor,
+				anonymous: isOwner ? false : anonymous,
 				content: content.trim(),
 				sendToOther,
 				deliverEmail: deliverEmail.trim(),
@@ -131,23 +140,10 @@ export default function ComposeDialog({ onClose, ownerPublicKey, onSubmitted }: 
 
 			<div className='space-y-3'>
 				<div className='flex items-center gap-2'>
-					<input
-						value={anonymous ? '' : author}
-						disabled={anonymous}
-						onChange={event => setAuthor(event.target.value)}
-						placeholder={anonymous ? '匿名留言' : '留言者（必填）'}
-						maxLength={40}
-						className='flex-1 rounded-lg border bg-white/10 px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-black/5 disabled:text-white/50'
-					/>
-					<button
-						type='button'
-						onClick={() => setAnonymous(value => !value)}
-						className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition-colors ${
-							anonymous ? 'border-white/30 bg-white/10 text-white/90' : 'bg-white/10 text-white/60 hover:bg-white/15'
-						}`}>
-						<UserX className='h-3.5 w-3.5' />
-						匿名
-					</button>
+					{isOwner ? <div className='flex-1 rounded-lg border border-brand/30 bg-brand/10 px-3 py-2 text-sm text-brand'>站主</div> : <>
+						<input value={anonymous ? '' : author} disabled={anonymous} onChange={event => setAuthor(event.target.value)} placeholder={anonymous ? '匿名留言' : '留言者（必填）'} maxLength={40} className='flex-1 rounded-lg border bg-white/10 px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-black/5 disabled:text-white/50' />
+						<button type='button' onClick={() => setAnonymous(value => !value)} className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs transition-colors ${anonymous ? 'border-white/30 bg-white/10 text-white/90' : 'bg-white/10 text-white/60 hover:bg-white/15'}`}><UserX className='h-3.5 w-3.5' />匿名</button>
+					</>}
 				</div>
 
 				<div>

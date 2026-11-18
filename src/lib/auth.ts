@@ -154,7 +154,7 @@ export async function getAuthToken(): Promise<string> {
 	const { signAppJwt, getInstallationId, createInstallationToken } = await import('./github-client')
 
 	toast.info('正在签发 JWT...')
-	const jwt = signAppJwt(GITHUB_CONFIG.APP_ID, privateKey)
+	const jwt = await signAppJwt(GITHUB_CONFIG.APP_ID, privateKey)
 
 	toast.info('正在获取安装信息...')
 	const installationId = await getInstallationId(jwt, GITHUB_CONFIG.OWNER, GITHUB_CONFIG.REPO)

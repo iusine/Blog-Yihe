@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { unlink } from 'node:fs/promises'
+import path from 'node:path'
 
 /**
  * 本地同步接口（仅开发环境）：
@@ -27,6 +29,30 @@ async function git(args: string[]): Promise<string> {
 	return `${stdout}${stderr}`.trim()
 }
 
+const DATA_PATHS = new Set([
+	'src/app/more/devices/list.json',
+	'src/app/more/skills/list.json',
+	'public/essays/index.json',
+	'src/app/about/list.json'
+])
+
+async function pullWithDataConflictRecovery(): Promise<string> {
+	try {
+		return await git(['pull', '--ff-only', '--no-rebase'])
+	} catch (error) {
+		const err = error as { stderr?: string; stdout?: string; message?: string }
+		const message = (err.stderr || err.stdout || err.message || '').toString()
+		if (!/would be overwritten by merge/i.test(message)) throw error
+
+		const conflicted = [...DATA_PATHS].filter(file => message.includes(file))
+		if (conflicted.length === 0) throw error
+		for (const file of conflicted) {
+			await unlink(path.join(process.cwd(), file)).catch(() => undefined)
+		}
+		return git(['pull', '--ff-only', '--no-rebase'])
+	}
+}
+
 export async function POST(request: Request) {
 	if (process.env.NODE_ENV === 'production') {
 		return Response.json({ ok: false, error: '本地同步只在开发环境启用' }, { status: 404 })
@@ -39,7 +65,7 @@ export async function POST(request: Request) {
 	}
 
 	try {
-		const output = await git(['pull', '--ff-only', '--no-rebase'])
+		const output = await pullWithDataConflictRecovery()
 		const head = await git(['rev-parse', '--short', 'HEAD'])
 		return Response.json({ ok: true, head, output })
 	} catch (error) {

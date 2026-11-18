@@ -1,13 +1,16 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
 import { useWriteStore } from '../stores/write-store'
 import { usePreviewStore } from '../stores/preview-store'
 import { useLoadBlog } from '../hooks/use-load-blog'
-import { WriteEditor } from '../components/editor'
-import { WriteSidebar } from '../components/sidebar'
-import { WriteActions } from '../components/actions'
-import { WritePreview } from '../components/preview'
+
+// 与 /write 一致：编辑器相关模块按需加载
+const WriteEditor = dynamic(() => import('../components/editor').then(m => m.WriteEditor), { ssr: false })
+const WriteSidebar = dynamic(() => import('../components/sidebar').then(m => m.WriteSidebar), { ssr: false })
+const WriteActions = dynamic(() => import('../components/actions').then(m => m.WriteActions), { ssr: false })
+const WritePreview = dynamic(() => import('../components/preview').then(m => m.WritePreview), { ssr: false })
 
 export default function EditBlogPage() {
 	const params = useParams() as { slug?: string }
@@ -31,7 +34,7 @@ export default function EditBlogPage() {
 		<WritePreview form={form} coverPreviewUrl={coverPreviewUrl} onClose={closePreview} slug={slug} />
 	) : (
 		<>
-			<div className='flex h-full justify-center gap-6 px-6 pt-24 pb-12'>
+			<div className='flex h-full justify-center gap-6 px-6 pt-24 pb-12 max-lg:flex-col max-lg:items-center max-sm:px-3 max-sm:pt-44'>
 				<WriteEditor />
 				<WriteSidebar />
 			</div>

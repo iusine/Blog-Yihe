@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
 import dayjs from 'dayjs'
 import { useWriteStore } from '../stores/write-store'
-import { extractFirstH1, stripFirstH1 } from '../lib/md-title'
+import { extractFirstH1, stripLeadingH1IfMatches } from '../lib/md-title'
 
 export function useWriteData() {
 	const { form, images } = useWriteStore()
 
-	// Replace local-image placeholders with preview URLs; drop leading h1 (shown as title)
+	// Replace local-image placeholders with preview URLs; drop a leading h1 that duplicates the title
 	const processedMarkdown = useMemo(() => {
-		let mdForPreview = stripFirstH1(form.md)
+		let mdForPreview = stripLeadingH1IfMatches(form.md, form.title)
 		for (const img of images) {
 			if (img.type === 'file') {
 				const placeholder = `local-image:${img.id}`

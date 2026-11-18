@@ -34,23 +34,24 @@ export default function ArtCard() {
                     </>
                 )}
 
-                {/* 首图固定用 avatar.png：直接铺满整张卡片（卡片 overflow-hidden 负责裁圆角） */}
-                <img
+                <button
+                    type='button'
                     onClick={() => router.push('/pictures')}
-                    src='/images/avatar.png'
-                    alt='wall art'
-                    className='h-full w-full cursor-pointer rounded-[inherit] object-cover object-center'
-                />
+                    className='absolute inset-0 flex h-full w-full items-center justify-center rounded-[40px] border-0 bg-transparent px-6 pb-16 text-white'>
+                    <span className='flex w-full max-w-none flex-col text-[15px] leading-relaxed text-white'>
+                        <span className='text-center text-[14px] whitespace-nowrap'>每抵达一处新的角落，会对这个世界多一分了解。</span>
+                    </span>
+                </button>
 
                 {/* 足迹入口条：底图用 avatar.png，按宽度铺满、上下裁切到这条的比例 */}
                 <div
                     onClick={() => router.push('/pictures')}
-                    className='absolute inset-x-4 bottom-4 h-12 cursor-pointer overflow-hidden rounded-2xl shadow-[0_12px_24px_-16px_rgba(60,40,30,0.85)] ring-1 ring-white/35 transition-transform duration-200 hover:-translate-y-0.5'>
+                    className='absolute inset-x-4 bottom-4 h-12 cursor-pointer overflow-hidden rounded-2xl border-0 p-0 shadow-[0_12px_24px_-16px_rgba(60,40,30,0.85)] ring-1 ring-white/35 transition-transform duration-200 hover:-translate-y-0.5'>
                     <img
                         src='/images/avatar.png'
                         alt=''
                         aria-hidden
-                        className='pointer-events-none absolute inset-0 h-full w-full object-cover object-center'
+                        className='pointer-events-none absolute inset-0 h-full w-full rounded-[inherit] object-cover object-center'
                     />
                     <span className='pointer-events-none absolute inset-0 bg-gradient-to-r from-[#2f2320]/80 via-[#2f2320]/52 to-[#2f2320]/28' />
 

@@ -11,15 +11,18 @@ import AritcleCard from '@/app/(home)/aritcle-card'
 import WriteButtons from '@/app/(home)/write-buttons'
 import HatCard from './hat-card'
 import BeianCard from './beian-card'
+import MusicCard from '@/components/music-card'
 import { useSize } from '@/hooks/use-size'
 import { motion } from 'motion/react'
+import dynamic from 'next/dynamic'
 import { useLayoutEditStore } from './stores/layout-edit-store'
 import { useConfigStore } from './stores/config-store'
 import { toast } from 'sonner'
 // [已移除] 首页配置弹窗：按需求不再在主页改配置。
 // 导入密钥的入口已经移到「写文章」按钮 / /write 的守卫页，配置相关代码整体删除。
 // import ConfigDialog from './config-dialog/index'
-import SnowfallBackground from '@/layout/backgrounds/snowfall'
+// 下雪背景默认关闭；用动态导入保证关闭时这段 chunk 根本不会被请求
+const SnowfallBackground = dynamic(() => import('@/layout/backgrounds/snowfall'), { ssr: false })
 
 export default function Home() {
     const { maxSM } = useSize()
@@ -83,13 +86,14 @@ export default function Home() {
 
             <div className='max-sm:flex max-sm:flex-col max-sm:items-center max-sm:gap-6 max-sm:pt-28 max-sm:pb-20'>
                 {cardStyles.artCard?.enabled !== false && <ArtCard />}
+                {cardStyles.clockCard?.enabled !== false && <ClockCard />}
                 {cardStyles.hiCard?.enabled !== false && <HiCard />}
-                {!maxSM && cardStyles.clockCard?.enabled !== false && <ClockCard />}
-                {!maxSM && cardStyles.calendarCard?.enabled !== false && <CalendarCard />}
+                {cardStyles.calendarCard?.enabled !== false && <CalendarCard />}
                 {cardStyles.socialButtons?.enabled !== false && <SocialButtons />}
-                {!maxSM && cardStyles.shareCard?.enabled !== false && <ShareCard />}
                 {cardStyles.articleCard?.enabled !== false && <AritcleCard />}
-                {!maxSM && cardStyles.writeButtons?.enabled !== false && <WriteButtons />}
+                {cardStyles.shareCard?.enabled !== false && <ShareCard />}
+                {maxSM && cardStyles.musicCard?.enabled !== false && <MusicCard />}
+                {cardStyles.writeButtons?.enabled !== false && <WriteButtons />}
                 {cardStyles.hatCard?.enabled !== false && <HatCard />}
                 {cardStyles.beianCard?.enabled !== false && <BeianCard />}
             </div>

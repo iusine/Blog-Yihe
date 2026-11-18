@@ -54,16 +54,18 @@ export function DialogModal({ open, onClose, children, className, disableCloseOn
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className={'fixed inset-0 z-50 flex items-center justify-center bg-card p-4 backdrop-blur-xl'}
+                    className={'fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-card p-4 backdrop-blur-xl'}
                     onClick={disableCloseOnOverlay ? undefined : onClose}>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.8, y: 20 }}
-                        className={cn('static', className)}
-                        onClick={e => e.stopPropagation()}>
-                        {children}
-                    </motion.div>
+                    <div className='flex min-h-full items-center justify-center'>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                            className={cn('static', className)}
+                            onClick={e => e.stopPropagation()}>
+                            {children}
+                        </motion.div>
+                    </div>
                 </motion.div>
             )}
         </AnimatePresence>,

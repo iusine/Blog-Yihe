@@ -1,12 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, MapPin, Moon, Sun } from 'lucide-react'
 import Card from '@/components/card'
 import { useCenterStore } from '@/hooks/use-center'
 import { useConfigStore } from './stores/config-store'
-import { useLayoutEditStore } from './stores/layout-edit-store'
 import { CARD_SPACING } from '@/consts'
 import { HomeDraggableLayer } from './home-draggable-layer'
 import { describeWeather, useLocationWeather, weatherKind } from '@/hooks/use-location-weather'
@@ -25,10 +23,8 @@ function WeatherIcon({ code, isDay }: { code?: number; isDay?: boolean }) {
 }
 
 export default function ClockCard() {
-    const router = useRouter()
     const center = useCenterStore()
     const { cardStyles, siteContent } = useConfigStore()
-    const editing = useLayoutEditStore(state => state.editing)
     const [time, setTime] = useState(new Date())
     const styles = cardStyles.clockCard
     const hiCardStyles = cardStyles.hiCard
@@ -57,7 +53,7 @@ export default function ClockCard() {
 
     return (
         <HomeDraggableLayer cardKey='clockCard' x={x} y={y} width={styles.width} height={styles.height}>
-            <Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='p-3'>
+            <Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='p-3 max-sm:static'>
                 {siteContent.enableChristmas && (
                     <>
                         <img
@@ -77,13 +73,7 @@ export default function ClockCard() {
 
                 {/* 卡片里两个盒子：左边时间，右边地区和天气 */}
                 <div className='flex h-full w-full items-stretch gap-2'>
-                    <div
-                        onClick={() => {
-                            if (!editing) {
-                                router.push('/clock')
-                            }
-                        }}
-                        className='card-rounded flex flex-1 cursor-pointer items-center justify-center gap-1 px-2'>
+                    <div className='card-rounded flex flex-1 items-center justify-center gap-1 px-2'>
                         <SevenSegmentDigit value={parseInt(hours[0])} scale={0.8} />
                         <SevenSegmentDigit value={parseInt(hours[1])} scale={0.8} />
                         <Colon className='mx-1' />

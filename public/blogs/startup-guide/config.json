@@ -1,0 +1,12 @@
+{
+  "title": "启动这个程序",
+  "tags": [
+    "博客",
+    "Next.js"
+  ],
+  "date": "2026-11-18T10:30",
+  "summary": "从安装依赖到发布第一篇 Markdown 文章，把 Blog-Yihe 在本机跑起来。",
+  "cover": "/images/pictures/e907fad10ac06e1b.jpg",
+  "hidden": false,
+  "category": "技术"
+}

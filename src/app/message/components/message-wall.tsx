@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Lock } from 'lucide-react'
-import { scatterLayout } from '../lib/scatter'
+import { useSize } from '@/hooks/use-size'
+import { hashString, scatterLayout } from '../lib/scatter'
+
+const glassColors = [
+	{ background: 'rgba(125, 211, 252, 0.18)', border: 'rgba(186, 230, 253, 0.38)' },
+	{ background: 'rgba(196, 181, 253, 0.18)', border: 'rgba(221, 214, 254, 0.38)' },
+	{ background: 'rgba(110, 231, 183, 0.16)', border: 'rgba(167, 243, 208, 0.36)' },
+	{ background: 'rgba(253, 186, 116, 0.17)', border: 'rgba(254, 215, 170, 0.38)' },
+	{ background: 'rgba(244, 114, 182, 0.15)', border: 'rgba(251, 207, 232, 0.36)' },
+	{ background: 'rgba(147, 197, 253, 0.18)', border: 'rgba(191, 219, 254, 0.38)' }
+]
 
 export type WallItem = {
 	id: string
@@ -22,6 +32,8 @@ type Props = {
 	onOpen: (item: WallItem) => void
 }
 
+const clampPercent = (value: number, inset: number) => Math.min(100 - inset, Math.max(inset, value))
+
 /**
  * 留言墙本体：卡片按 id 哈希散落、彼此轻微堆叠，可以拖动重新摆放。
  */
@@ -29,19 +41,47 @@ export default function MessageWall({ items, onOpen }: Props) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const dragRef = useRef<{ id: string; startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(null)
 	const zRef = useRef(100)
+	const { maxSM } = useSize()
 
 	const [positions, setPositions] = useState<Record<string, { x: number; y: number; rotate: number; z: number }>>({})
 	const [salt, setSalt] = useState(0)
+	const [canvas, setCanvas] = useState({ width: 0, height: 0 })
 
-	const base = useMemo(() => scatterLayout(items.map(item => item.id), salt), [items, salt])
+	// 手机上卡片更窄，散落范围也要按卡片实际大小内缩，避免贴边被裁掉
+	const cardWidth = maxSM ? 150 : 210
+	const insetX = maxSM && canvas.width ? Math.min(40, ((cardWidth / 2 + 8) / canvas.width) * 100) : 8
+	const insetY = maxSM && canvas.height ? Math.min(38, (93 / canvas.height) * 100) : 10
+	const layoutKey = maxSM && canvas.width ? `${Math.round(canvas.width)}x${Math.round(canvas.height)}` : 'desktop'
+	const lastLayoutKeyRef = useRef('')
+
+	const base = useMemo(
+		() => scatterLayout(items.map(item => item.id), salt, maxSM ? { paddingX: insetX, paddingY: insetY } : undefined),
+		[items, salt, maxSM, insetX, insetY]
+	)
 
 	useEffect(() => {
+		const element = containerRef.current
+		if (!element) return
+		const observer = new ResizeObserver(([entry]) => {
+			setCanvas({ width: entry.contentRect.width, height: entry.contentRect.height })
+		})
+		observer.observe(element)
+		return () => observer.disconnect()
+	}, [])
+
+	useEffect(() => {
+		const reset = lastLayoutKeyRef.current !== layoutKey
+		lastLayoutKeyRef.current = layoutKey
 		setPositions(previous => {
+			const prior = reset ? {} : previous
 			const next: Record<string, { x: number; y: number; rotate: number; z: number }> = {}
-			for (const [id, position] of base) next[id] = previous[id] ?? position
+			for (const [id, position] of base) {
+				const source = prior[id] ?? position
+				next[id] = { ...source, x: clampPercent(source.x, insetX), y: clampPercent(source.y, insetY) }
+			}
 			return next
 		})
-	}, [base])
+	}, [base, insetX, insetY, layoutKey])
 
 	const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>, item: WallItem) => {
 		const position = positions[item.id]
@@ -64,12 +104,23 @@ export default function MessageWall({ items, onOpen }: Props) {
 		const rect = containerRef.current?.getBoundingClientRect()
 		if (!drag || !rect) return
 
-		const dx = ((event.clientX - drag.startX) / rect.width) * 100
-		const dy = ((event.clientY - drag.startY) / rect.height) * 100
-		if (Math.hypot(dx, dy) > 0.5) drag.moved = true
+		const dxPx = event.clientX - drag.startX
+		const dyPx = event.clientY - drag.startY
+		const dx = (dxPx / rect.width) * 100
+		const dy = (dyPx / rect.height) * 100
+		if (Math.hypot(dxPx, dyPx) > 6) drag.moved = true
 
 		setPositions(previous =>
-			previous[drag.id] ? { ...previous, [drag.id]: { ...previous[drag.id], x: drag.originX + dx, y: drag.originY + dy } } : previous
+			previous[drag.id]
+				? {
+						...previous,
+						[drag.id]: {
+							...previous[drag.id],
+							x: clampPercent(drag.originX + dx, insetX),
+							y: clampPercent(drag.originY + dy, insetY)
+						}
+					}
+				: previous
 		)
 	}
 
@@ -99,6 +150,7 @@ export default function MessageWall({ items, onOpen }: Props) {
 			{items.map(item => {
 				const position = positions[item.id]
 				if (!position) return null
+				const glass = glassColors[hashString(item.id) % glassColors.length]
 
 				return (
 					<div
@@ -109,17 +161,17 @@ export default function MessageWall({ items, onOpen }: Props) {
 						onKeyDown={event => {
 							if (event.key === 'Enter' || event.key === ' ') onOpen(item)
 						}}
-						className='absolute w-[210px] cursor-grab touch-none select-none active:cursor-grabbing'
+						className='absolute cursor-grab touch-none select-none active:cursor-grabbing'
 						style={{
-							left: `${position.x}%`,
-							top: `${position.y}%`,
+							width: cardWidth,
+							left: `${clampPercent(position.x, insetX)}%`,
+							top: `${clampPercent(position.y, insetY)}%`,
 							zIndex: position.z,
 							transform: `translate(-50%, -50%) rotate(${position.rotate}deg)`
 						}}>
 						<div
-							className={`relative rounded-[6px] border p-3 pb-6 shadow-[0_16px_30px_-18px_rgba(60,40,30,0.55)] transition-shadow hover:shadow-[0_22px_38px_-18px_rgba(60,40,30,0.6)] ${
-								item.ownerOnly ? 'border-white/20 bg-white/[0.06]' : 'border-white/15 bg-white/[0.07]'
-							}`}>
+							className='relative rounded-[6px] border p-3 pb-6 shadow-[0_16px_30px_-18px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-shadow hover:shadow-[0_22px_38px_-18px_rgba(0,0,0,0.6)]'
+							style={{ backgroundColor: glass.background, borderColor: glass.border }}>
 							{/* 胶带 */}
 							<span className='absolute -top-2 left-1/2 h-4 w-14 -translate-x-1/2 rotate-[-2deg] rounded-[2px] bg-white/15' />
 
@@ -132,7 +184,7 @@ export default function MessageWall({ items, onOpen }: Props) {
 									</span>
 								)}
 								{item.hasDeliver && <span className='rounded-full bg-[#2fcbe7]/20 px-1.5 py-0.5'>代发</span>}
-								<span className='ml-auto shrink-0'>{item.createdAt.slice(0, 10)}</span>
+								<span className='ml-auto shrink-0 max-sm:hidden'>{item.createdAt.slice(0, 10)}</span>
 							</div>
 
 							<p className='mt-2 line-clamp-5 text-[13px] leading-relaxed break-words whitespace-pre-wrap text-white/90'>{item.content}</p>

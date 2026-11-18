@@ -1,5 +1,12 @@
 {
   "title": "关于本站",
   "description": "一个基于 Github 的现代化博客系统",
-  "content": "📦网站基于 Github 仓库完全存储，所有内容版本可控\n\n🚀无后端，无 serverless function，纯静态站点\n\n✏️文章通过可视化 UI 直接编辑并提交到 Github 仓库\n\n🔑所有用户都可以编辑，提交需要 Owner 的 Private Key\n\n## 技术栈\n\n- Next.js\n- React\n- TypeScript\n- Tailwind CSS\n- Motion\n- Github API"
+  "intro": "这是一个记录生活、创作和技术实践的小站。",
+  "sections": [
+    { "id": "nextjs", "title": "Next.js / React / TypeScript", "category": "核心框架", "content": "站点的页面、组件和交互基础。" },
+    { "id": "tailwind", "title": "Tailwind CSS", "category": "核心框架", "content": "用于构建统一、可调整的界面样式。" },
+    { "id": "markdown", "title": "Markdown / KaTeX", "category": "内容与渲染", "content": "文章内容、数学公式和富文本展示。" },
+    { "id": "github", "title": "GitHub API", "category": "部署与数据", "content": "内容数据版本化存储，并同步到本地开发环境。" },
+    { "id": "motion", "title": "Motion", "category": "体验与动效", "content": "页面入场、卡片反馈和交互动效。" }
+  ]
 }

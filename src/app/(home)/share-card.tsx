@@ -48,7 +48,7 @@ export default function ShareCard() {
 
     return (
         <HomeDraggableLayer cardKey='shareCard' x={x} y={y} width={width} height={styles.height}>
-            <Card order={styles.order} width={width} height={styles.height} x={x} y={y} className='flex flex-col justify-center gap-1.5 !p-4'>
+            <Card order={styles.order} width={width} height={styles.height} x={x} y={y} className='flex flex-col justify-center gap-1.5 !p-4 max-sm:static'>
                 <h2 className='text-secondary text-[11px] leading-none'>随机推荐分享</h2>
 
                 <a

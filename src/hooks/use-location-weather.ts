@@ -172,23 +172,36 @@ export function useLocationWeather() {
 			return
 		}
 
-		void (async () => {
-			const result = await loadLocationWeather()
-			if (cancelled) return
+		const startRequest = () => {
+			void (async () => {
+				const result = await loadLocationWeather()
+				if (cancelled) return
 
-			setState({ ...result, loading: false })
+				setState({ ...result, loading: false })
 
-			if (result.province || result.city || result.temperature !== undefined) {
-				try {
-					sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ...result, timestamp: Date.now() }))
-				} catch {
-					// 隐私模式下 sessionStorage 可能不可用，忽略即可
+				if (result.province || result.city || result.temperature !== undefined) {
+					try {
+						sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ...result, timestamp: Date.now() }))
+					} catch {
+						// 隐私模式下 sessionStorage 可能不可用，忽略即可
+					}
 				}
-			}
-		})()
+			})()
+		}
+
+		// 天气只是锦上添花：等首屏空闲后再请求，不和 LCP 抢带宽
+		let idleId: number | undefined
+		let fallbackTimer: ReturnType<typeof setTimeout> | undefined
+		if (typeof window.requestIdleCallback === 'function') {
+			idleId = window.requestIdleCallback(startRequest, { timeout: 2000 })
+		} else {
+			fallbackTimer = setTimeout(startRequest, 300)
+		}
 
 		return () => {
 			cancelled = true
+			if (idleId !== undefined) window.cancelIdleCallback(idleId)
+			if (fallbackTimer) clearTimeout(fallbackTimer)
 		}
 	}, [])
 

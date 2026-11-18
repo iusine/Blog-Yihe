@@ -1,7 +1,5 @@
 /* 全站基础样式、卡片基础类和通用工具样式。*/
 @import 'tailwindcss';
-/* [新增] 数学公式样式，Markdown 里的 $...$ / $$...$$ 依赖它 */
-@import 'katex/dist/katex.min.css';
 /* [新增] 把原来没有被引用的两个样式文件真正接进来 */
 @import './theme.css';
 @import './article.css';
@@ -117,7 +115,7 @@
 
 /* [新增] 卡片本体样式，首页所有卡片与弹窗都靠 .card 取背景、圆角和阴影 */
 @utility card {
-	@apply bg-card absolute rounded-[40px] border p-6 backdrop-blur-xl;
+@apply bg-card absolute rounded-3xl border p-6 backdrop-blur-xl;
 	box-shadow:
 		0 24px 70px -34px rgba(0, 0, 0, 0.65),
 		inset 0 1px 0 rgba(255, 255, 255, 0.14);
@@ -125,16 +123,16 @@
 	&.squircle {
 		@supports (corner-shape: squircle) {
 			corner-shape: squircle;
-			@apply rounded-[64px];
+			@apply rounded-[40px];
 		}
 	}
 }
 
 @utility card-rounded {
-	@apply rounded-[40px];
+	@apply rounded-3xl;
 	@supports (corner-shape: squircle) {
 		corner-shape: squircle;
-		@apply rounded-[64px];
+		@apply rounded-[40px];
 	}
 }
 
@@ -155,10 +153,10 @@
 }
 
 @utility btn-rounded {
-	@apply rounded-xl;
+	@apply rounded-lg;
 	@supports (corner-shape: squircle) {
 		corner-shape: squircle;
-		@apply rounded-2xl;
+		@apply rounded-xl;
 	}
 }
 @utility brand-btn {

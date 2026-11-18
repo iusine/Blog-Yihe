@@ -44,7 +44,7 @@ export function WritePreview({ form, coverPreviewUrl, onClose, slug }: WritePrev
 				animate={{ opacity: 1, scale: 1 }}
 				whileHover={{ scale: 1.05 }}
 				whileTap={{ scale: 0.95 }}
-				className='absolute top-4 right-6 rounded-xl border bg-white/10 px-6 py-2 text-sm'
+				className='absolute top-4 right-6 rounded-xl border bg-white/10 px-6 py-2 text-sm max-sm:fixed max-sm:top-auto max-sm:right-auto max-sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:left-4 max-sm:z-50 max-sm:bg-card/90 max-sm:px-4 max-sm:py-2 max-sm:text-xs max-sm:shadow-lg max-sm:backdrop-blur'
 				onClick={onClose}>
 				关闭预览
 			</motion.button>

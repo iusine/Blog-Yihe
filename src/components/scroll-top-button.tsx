@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'motion/react'
-import TopSVG from '@/svgs/top.svg'
+import { ArrowUpToLine } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type ScrollTopButtonProps = {
@@ -26,12 +26,12 @@ export function ScrollTopButton({ className, delay }: ScrollTopButtonProps) {
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
-    if (!show || !active) return null
-
     const handleClick = useCallback(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' })
         setTimeout(() => setActive(false), 1000)
     }, [])
+
+    if (!show || !active) return null
 
     return (
         <motion.button
@@ -41,8 +41,8 @@ export function ScrollTopButton({ className, delay }: ScrollTopButtonProps) {
             whileTap={{ scale: 0.95 }}
             onClick={handleClick}
             aria-label='Scroll to top'
-            className={cn('card text-secondary static gap-2 rounded-full p-3 text-sm', className)}>
-            <TopSVG className='w-7' />
+            className={cn('card text-brand static gap-2 rounded-full p-3 text-sm', className)}>
+            <ArrowUpToLine className='h-5 w-5' strokeWidth={2.2} />
         </motion.button>
     )
 }

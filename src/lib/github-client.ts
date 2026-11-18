@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuthStore } from '@/hooks/use-auth'
-import { KJUR, KEYUTIL } from 'jsrsasign'
 import { toast } from 'sonner'
 
 export const GH_API = 'https://api.github.com'
@@ -88,7 +87,9 @@ async function ghFail(action: string, res: Response, hint?: string): Promise<nev
 	throw new GitHubApiError(action, res.status, detail, hint)
 }
 
-export function signAppJwt(appId: string, privateKeyPem: string): string {
+export async function signAppJwt(appId: string, privateKeyPem: string): Promise<string> {
+	// jsrsasign 体积很大，只有站主签发令牌时才用得到；按需加载避免拖慢访客首屏
+	const { KJUR, KEYUTIL } = await import('jsrsasign')
 	const now = Math.floor(Date.now() / 1000)
 	const header = { alg: 'RS256', typ: 'JWT' }
 	const payload = { iat: now - 60, exp: now + 8 * 60, iss: appId }

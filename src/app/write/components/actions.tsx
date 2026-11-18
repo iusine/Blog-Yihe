@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useWriteStore } from '../stores/write-store'
 import { usePreviewStore } from '../stores/preview-store'
 import { usePublish } from '../hooks/use-publish'
+import { confirmDialog } from '@/components/themed-dialog'
 
 export function WriteActions() {
 	const { loading, mode, form, loadBlogForEdit, originalSlug, updateForm, sourceMode, toggleSourceMode } = useWriteStore()
@@ -23,8 +24,14 @@ export function WriteActions() {
 		}
 	}
 
-	const handleCancel = () => {
-		if (!window.confirm('放弃本次修改吗？')) {
+	const handleCancel = async () => {
+		const confirmed = await confirmDialog({
+			title: '放弃修改',
+			message: '放弃本次修改吗？未发布的改动不会保留。',
+			confirmText: '放弃',
+			danger: true
+		})
+		if (!confirmed) {
 			return
 		}
 		if (mode === 'edit' && originalSlug) {
@@ -34,15 +41,16 @@ export function WriteActions() {
 		}
 	}
 
-	const buttonText = isAuth ? (mode === 'edit' ? '更新' : '发布') : '导入密钥'
+	const buttonText = isAuth ? (mode === 'edit' ? '更新' : '发布') : '发布'
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		if (!isAuth) {
 			toast.info('请先导入密钥')
 			return
 		}
 		const confirmMsg = form?.title ? `确定删除《${form.title}》吗？该操作不可恢复。` : '确定删除当前文章吗？该操作不可恢复。'
-		if (window.confirm(confirmMsg)) {
+		const confirmed = await confirmDialog({ title: '删除文章', message: confirmMsg, confirmText: '删除', danger: true })
+		if (confirmed) {
 			onDelete()
 		}
 	}
@@ -81,11 +89,11 @@ export function WriteActions() {
 			/>
 			<input ref={mdInputRef} type='file' accept='.md' className='hidden' onChange={handleMdFileChange} />
 
-			<ul className='absolute top-4 right-6 flex items-center gap-2'>
+			<ul className='absolute top-4 right-6 flex max-w-[calc(100vw-3rem)] flex-wrap items-center justify-end gap-2 max-sm:inset-x-3 max-sm:top-24 max-sm:max-w-none max-sm:justify-center max-sm:gap-1.5'>
 				{mode === 'edit' && (
 					<>
 						<motion.div initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} className='flex items-center gap-2'>
-							<div className='rounded-lg border bg-blue-50 px-4 py-2 text-sm text-blue-700'>编辑模式</div>
+							<div className='rounded-lg border bg-blue-50 px-3 py-1.5 text-sm text-blue-700 max-sm:px-2 max-sm:py-1 max-sm:text-xs'>编辑模式</div>
 						</motion.div>
 
 						<motion.button

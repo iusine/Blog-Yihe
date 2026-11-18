@@ -104,6 +104,8 @@ export function ProjectCard({ project, isEditMode = false, onUpdate, onDelete }:
 					<img
 						src={localProject.image}
 						alt={localProject.name}
+						loading='lazy'
+						decoding='async'
 						className={cn('h-16 w-16 shrink-0 rounded-xl object-cover', canEdit && 'cursor-pointer')}
 						onClick={() => canEdit && setShowImageDialog(true)}
 					/>

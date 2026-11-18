@@ -1,7 +1,5 @@
 'use client'
 
-import { KEYUTIL } from 'jsrsasign'
-
 /**
  * 「仅站主看见」和「代发邮箱」用到的加密。
  *
@@ -47,7 +45,9 @@ function wrapPem(base64: string, label: string): string {
 }
 
 /** 把私钥统一规整成 PKCS#8，WebCrypto 只认这个格式（用户的 .pem 可能是 PKCS#1） */
-function normalizePrivatePem(privatePem: string): string {
+async function normalizePrivatePem(privatePem: string): Promise<string> {
+	// jsrsasign 只在这里用到，按需加载，访客打开留言墙时不必下载它
+	const { KEYUTIL } = await import('jsrsasign')
 	const key = KEYUTIL.getKey(privatePem) as any
 	if (!key) throw new Error('私钥无法解析')
 	return KEYUTIL.getPEM(key, 'PKCS8PRV')
@@ -55,7 +55,7 @@ function normalizePrivatePem(privatePem: string): string {
 
 /** 从私钥 PEM 推导出公钥 PEM（公钥可以公开） */
 export async function derivePublicKeyPem(privatePem: string): Promise<string> {
-	const normalized = normalizePrivatePem(privatePem)
+	const normalized = await normalizePrivatePem(privatePem)
 	const privateKey = await crypto.subtle.importKey('pkcs8', pemToArrayBuffer(normalized), { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['decrypt'])
 
 	// 不能直接把私钥导出成 spki，先取 n/e 组出公钥 JWK，再导出 SPKI
@@ -76,7 +76,7 @@ async function importOwnerPublicKey(publicPem: string): Promise<CryptoKey> {
 }
 
 async function importOwnerPrivateKey(privatePem: string): Promise<CryptoKey> {
-	const normalized = normalizePrivatePem(privatePem)
+	const normalized = await normalizePrivatePem(privatePem)
 	return crypto.subtle.importKey('pkcs8', pemToArrayBuffer(normalized), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt'])
 }
 

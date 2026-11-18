@@ -255,7 +255,7 @@ function AlmanacBody({ almanac, isToday }: { almanac: Almanac; isToday: boolean 
 	return (
 		<>
 			{/* 概要 */}
-			<section className='mt-5 rounded-[32px] border bg-card p-6'>
+			<section className='mt-5 rounded-2xl border bg-card p-6'>
 				<div className='flex flex-wrap items-start justify-between gap-6'>
 					<div>
 						<div className='flex flex-wrap items-baseline gap-3'>

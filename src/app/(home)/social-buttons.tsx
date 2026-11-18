@@ -142,24 +142,22 @@ export default function SocialButtons() {
         const hasLabel = Boolean(button.label)
         const iconSize = hasLabel ? 'size-6' : 'size-8'
 
-        if (button.type === 'github' || button.type === 'tg') {
+        if (button.type === 'email') {
             return (
                 <motion.a
                     key={button.id}
-                    href={button.value}
-                    target='_blank'
+                    href={`mailto:${button.value}`}
+                    aria-label='给我发邮件'
                     {...commonProps}
-                    className={`font-averia flex items-center gap-2 rounded-xl border bg-white/10 text-xl text-white ${!hasLabel ? 'p-1.5' : 'px-3 py-1.5'}`}
-                    style={{ boxShadow: ' inset 0 0 12px rgba(255, 255, 255, 0.4)' }}>
-                    <Icon className={'size-8'} />
+                    className={`card relative rounded-xl font-medium whitespace-nowrap ${hasLabel ? 'flex items-center gap-2 px-3 py-2.5' : 'p-1.5'}`}>
+                    <Icon className={iconSize} />
                     {hasLabel && button.label}
                 </motion.a>
             )
         }
 
-        if (button.type === 'email' || button.type === 'wechat' || button.type === 'qq') {
-            const messageMap: Record<'email' | 'wechat' | 'qq', string> = {
-                email: '邮箱已复制到剪贴板',
+        if (button.type === 'wechat' || button.type === 'qq') {
+            const messageMap: Record<'wechat' | 'qq', string> = {
                 wechat: '微信号已复制到剪贴板',
                 qq: 'QQ号已复制到剪贴板'
             }
@@ -223,7 +221,7 @@ export default function SocialButtons() {
                     key={button.id}
                     onClick={() => {
                         navigator.clipboard.writeText(button.value).then(() => {
-                            toast.success(messageMap[button.type as 'email' | 'wechat' | 'qq'])
+                            toast.success(messageMap[button.type as 'wechat' | 'qq'])
                         })
                     }}
                     {...commonProps}

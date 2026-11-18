@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
-import { KeyRound, Lock, PenLine, Settings2 } from 'lucide-react'
+import { KeyRound, PenLine, Settings2 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import MessageWall, { type WallItem } from './components/message-wall'
-import ComposeDialog from './components/compose-dialog'
-import MessageDetail from './components/message-detail'
-import OwnerPanel from './components/owner-panel'
+
+// 写留言、详情、站主面板都是按需打开的，拆包后访客只加载留言墙本身
+const ComposeDialog = dynamic(() => import('./components/compose-dialog'), { ssr: false })
+const MessageDetail = dynamic(() => import('./components/message-detail'), { ssr: false })
+const OwnerPanel = dynamic(() => import('./components/owner-panel'), { ssr: false })
 import { decryptOwnerEntries, type OwnerEntry } from './lib/decrypt'
 import { derivePublicKeyPem } from './lib/crypto'
 import type { Message } from './types'
@@ -189,7 +192,7 @@ export default function Page() {
 	return (
 		<div className='relative h-[100svh] w-full overflow-hidden'>
 			{/* 顶部标题 */}
-			<div className='pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center px-4 sm:top-6'>
+			<div className='pointer-events-none absolute inset-x-0 top-[5.5rem] z-40 flex justify-center px-4 sm:top-6'>
 				<div className='pointer-events-auto flex items-center gap-3 rounded-2xl border bg-card/85 px-5 py-2.5 shadow-[0_18px_30px_-24px_rgba(70,45,30,0.45)] backdrop-blur-md'>
 					<div className='flex flex-col'>
 						<h1 className='text-[15px] leading-none font-semibold text-white'>留言墙</h1>
@@ -214,12 +217,12 @@ export default function Page() {
 			</div>
 
 			{/* 墙 */}
-			<div className='absolute inset-0 pt-20 pb-16'>
+			<div className='absolute inset-0 pt-20 pb-16 max-sm:pt-36'>
 				<MessageWall items={wallItems} onOpen={setOpenItem} />
 			</div>
 
 			{/* 右下角操作 */}
-			<div className='absolute right-6 bottom-6 z-20 flex flex-col items-end gap-2'>
+			<div className='absolute right-6 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-40 flex flex-col items-end gap-2'>
 				{isAuth && !ownerPublicKey && (
 					<button
 						type='button'
@@ -237,29 +240,9 @@ export default function Page() {
 				</button>
 			</div>
 
-			{/* 左下角提示 / 站主入口 */}
-			<div className='absolute bottom-5 left-5 z-10 flex items-center gap-3'>
-				{!isAuth ? (
-					<>
-						<p className='text-secondary pointer-events-none flex items-center gap-1 text-[11px] max-sm:hidden'>
-							<Lock className='h-3 w-3' />
-							标有「仅站主」的留言需要站主导入私钥后才能看到
-						</p>
-						<button
-							type='button'
-							onClick={() => requireAuth(() => setPanelOpen(true))}
-							className='text-secondary flex items-center gap-1 text-[11px] transition-colors hover:text-white'>
-							<KeyRound className='h-3 w-3' />
-							站主？导入密钥
-						</button>
-					</>
-				) : (
-					<p className='text-secondary pointer-events-none text-[11px] max-sm:hidden'>站主模式 · 仅站主留言已解密</p>
-				)}
-			</div>
-
 			{composeOpen && (
 				<ComposeDialog
+					isOwner={isAuth}
 					ownerPublicKey={ownerPublicKey}
 					onClose={() => setComposeOpen(false)}
 					onSubmitted={() => {

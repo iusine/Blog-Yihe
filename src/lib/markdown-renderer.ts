@@ -7,6 +7,50 @@ export interface MarkdownRenderResult {
 	toc: TocItem[]
 }
 
+export type FootnoteDefinition = { id: string; label: string; content: string }
+
+const ADMONITION_LABELS: Record<string, string> = {
+	note: '注意',
+	tip: '提示',
+	important: '重要',
+	warning: '警告',
+	caution: '小心'
+}
+
+/** 抽取 `[^id]: 内容` 定义行（跳过围栏代码块），返回去掉定义后的正文与定义列表。 */
+function extractFootnoteDefinitions(markdown: string): { markdown: string; definitions: FootnoteDefinition[] } {
+	const definitions: FootnoteDefinition[] = []
+	const kept: string[] = []
+	let fenceMarker = ''
+
+	for (const line of markdown.split('\n')) {
+		const fence = line.match(/^\s*(`{3,}|~{3,})/)
+		if (fence) {
+			if (!fenceMarker) {
+				fenceMarker = fence[1][0]
+			} else if (fence[1][0] === fenceMarker) {
+				fenceMarker = ''
+			}
+			kept.push(line)
+			continue
+		}
+
+		if (!fenceMarker) {
+			const match = line.match(/^\[\^([^\]\s]+)\]:[ \t]*(.*)$/)
+			if (match) {
+				definitions.push({ id: match[1], label: String(definitions.length + 1), content: match[2] })
+				// 保留一个空行，避免前后段落粘连
+				kept.push('')
+				continue
+			}
+		}
+
+		kept.push(line)
+	}
+
+	return { markdown: kept.join('\n'), definitions }
+}
+
 export function slugify(text: string): string {
 	return text
 		.toLowerCase()
@@ -106,6 +150,11 @@ export async function renderMarkdown(markdown: string): Promise<MarkdownRenderRe
 	const codeBlockMap = new Map<string, { html: string; original: string }>()
 	const [shiki, katex] = await Promise.all([loadShiki(), loadKatex()])
 
+	// 脚注定义在词法分析前抽走，正文里只留下 [^id] 引用
+	const { markdown: bodyMarkdown, definitions: footnotes } = extractFootnoteDefinitions(markdown)
+	const footnoteMap = new Map(footnotes.map(def => [def.id, def]))
+	const footnoteRefCounts = new Map<string, number>()
+
 	const renderMath = (content: string, displayMode: boolean) => {
 		if (!katex) {
 			return displayMode ? `$$${content}$$` : `$${content}$`
@@ -164,6 +213,67 @@ export async function renderMarkdown(markdown: string): Promise<MarkdownRenderRe
 		},
 		extensions: [
 			{
+				// GitHub / Typora 风格的警告框：> [!NOTE] + 后续 > 行
+				name: 'admonition',
+				level: 'block',
+				tokenizer(src: string) {
+					const head = src.match(/^>[ \t]*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*([^\n]*)(?:\n|$)/i)
+					if (!head) return
+
+					const kind = head[1].toLowerCase()
+					let raw = head[0]
+					let rest = src.slice(raw.length)
+					const lines: string[] = []
+
+					while (rest.length > 0) {
+						const line = rest.match(/^>[^\n]*(?:\n|$)/)
+						if (!line || line[0] === '') break
+						raw += line[0]
+						lines.push(line[0].replace(/^>[ \t]?/, '').replace(/\n$/, ''))
+						rest = rest.slice(line[0].length)
+					}
+
+					const body = lines.join('\n').replace(/^\n+/, '').replace(/\s+$/, '')
+					return {
+						type: 'admonition',
+						raw,
+						kind,
+						title: head[2].trim() || ADMONITION_LABELS[kind],
+						tokens: body ? this.lexer.blockTokens(body) : []
+					} as Tokens.Generic
+				},
+				renderer(token) {
+					const kind = String((token as { kind?: string }).kind || 'note')
+					const title = String((token as { title?: string }).title || ADMONITION_LABELS[kind] || '')
+					const inner = this.parser.parse(((token as { tokens?: Token[] }).tokens || []) as Token[])
+					return `<div class="admonition admonition-${kind}"><div class="admonition-title">${escapeHtml(title)}</div><div class="admonition-body">${inner}</div></div>\n`
+				}
+			},
+			{
+				name: 'footnoteRef',
+				level: 'inline',
+				start(src: string) {
+					const index = src.indexOf('[^')
+					return index === -1 ? undefined : index
+				},
+				tokenizer(src: string) {
+					const match = src.match(/^\[\^([^\]\s]+)\]/)
+					if (!match) return
+					return { type: 'footnoteRef', raw: match[0], id: match[1] } as Tokens.Generic
+				},
+				renderer(token) {
+					const id = String((token as { id?: string }).id || '')
+					const def = footnoteMap.get(id)
+					if (!def) return `[^${escapeHtml(id)}]`
+
+					const key = slugify(id) || `note-${def.label}`
+					const count = (footnoteRefCounts.get(id) || 0) + 1
+					footnoteRefCounts.set(id, count)
+					const refId = count === 1 ? `fnref-${key}` : `fnref-${key}-${count}`
+					return `<sup class="footnote-ref"><a href="#fn-${key}" id="${refId}">${def.label}</a></sup>`
+				}
+			},
+			{
 				name: 'mathBlock',
 				level: 'block',
 				start(src: string) {
@@ -212,7 +322,7 @@ export async function renderMarkdown(markdown: string): Promise<MarkdownRenderRe
 		]
 	})
 
-	const tokens = marked.lexer(markdown)
+	const tokens = marked.lexer(bodyMarkdown)
 
 	const toc: TocItem[] = []
 	function extractHeadings(tokenList: Token[]) {
@@ -260,7 +370,18 @@ export async function renderMarkdown(markdown: string): Promise<MarkdownRenderRe
 	})
 	await Promise.all(highlightJobs)
 
-	const html = (marked.parser(tokens) as string) || ''
+	let html = (marked.parser(tokens) as string) || ''
+
+	if (footnotes.length > 0) {
+		const items = footnotes
+			.map(def => {
+				const key = slugify(def.id) || `note-${def.label}`
+				const content = (marked.parseInline(def.content) as string) || escapeHtml(def.content)
+				return `<li id="fn-${key}">${content} <a href="#fnref-${key}" class="footnote-backref" aria-label="返回正文">↩</a></li>`
+			})
+			.join('\n')
+		html += `\n<section class="footnotes">\n<ol>\n${items}\n</ol>\n</section>\n`
+	}
 
 	return { html, toc }
 }

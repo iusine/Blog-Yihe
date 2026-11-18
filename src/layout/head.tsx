@@ -5,13 +5,12 @@
 export default function Head() {
 	return (
 		<head>
-			<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+			<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover' />
 			<link rel='manifest' href='/manifest.json' />
 			<link rel='icon' href='/favicon.png' />
 
-			<link rel='preconnect' href='https://fonts.googleapis.cn' />
-			<link rel='preconnect' href='https://fonts.gstatic.cn' crossOrigin='anonymous' />
-			<link href='https://fonts.googleapis.cn/css2?family=Averia+Gruesa+Libre&display=swap' rel='stylesheet' />
+			{/* Averia Gruesa Libre 已自托管（见 theme.css 的 @font-face），不再请求 Google Fonts 的阻塞式样式表 */}
+			<link rel='preload' href='/fonts/averia-gruesa-libre.woff2' as='font' type='font/woff2' crossOrigin='anonymous' />
 		</head>
 	)
 }

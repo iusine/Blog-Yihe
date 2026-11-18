@@ -10,38 +10,6 @@
 		"stars": 4
 	},
 	{
-		"name": "TinyPNG",
-		"url": "https://tinypng.com/",
-		"logo": "/images/share/e3ebf06fc5dd46e3.webp",
-		"description": "国际上比较出名的压缩图片工具，过去的书本中知晓的这个网站，但是有图片大小限制，也有数量限制。挺好的压缩图片替代品。",
-		"tags": [
-			"图片"
-		],
-		"stars": 3
-	},
-	{
-		"name": "removebg",
-		"url": "https://www.remove.bg/zh",
-		"logo": "/images/share/859bfb2ef1c6a503.svg",
-		"description": "AI 抠图工具，特点是界面简洁，效果比 windows 自带的去除背景会更好一些，缺点是有免费有导出大小限制",
-		"tags": [
-			"图片",
-			"AI"
-		],
-		"stars": 3
-	},
-	{
-		"name": "Neumorphism",
-		"url": "https://neumorphism.io/",
-		"logo": "https://neumorphism.io/apple-touch-icon.png",
-		"description": "Neumorphism 是一种极具鲜明特色的设计风格，总能给新人一种惊叹感。但是应用并不广泛，实际开发也会有很多不好的点。更多是做一个留念。",
-		"tags": [
-			"CSS",
-			"Github"
-		],
-		"stars": 2
-	},
-	{
 		"name": "Nucleo",
 		"url": "https://nucleoapp.com/app/?library=core",
 		"logo": "/images/share/7e720f35557fa9de.svg",
@@ -50,16 +18,6 @@
 			"Icons"
 		],
 		"stars": 3
-	},
-	{
-		"name": "CSS Buttons",
-		"url": "https://cssbuttons.io/",
-		"logo": "/images/share/2b8118a3645967ee.svg",
-		"description": "有不少按钮样式。跟 Neumorphism 有一些关系。",
-		"tags": [
-			"CSS"
-		],
-		"stars": 2
 	},
 	{
 		"name": "Uiverse",
@@ -72,51 +30,10 @@
 		"stars": 4
 	},
 	{
-		"name": "Magic UI",
-		"url": "https://magicui.design/",
-		"logo": "https://magicui.design/favicon.ico",
-		"description": "shadcn/ui 伴生库，有很多实用设计。取用也很方便，可以自己复制独立的代码。",
-		"tags": [
-			"组件",
-			"Github"
-		],
-		"stars": 4
-	},
-	{
-		"name": "Ai lman",
-		"url": "https://aliimam.in/docs/backgrounds/shader-rgb",
-		"logo": "https://aliimam.in/_next/image?url=%2Fai-logo-black.png&w=128&q=75",
-		"description": "类 Magic UI，但是感觉差点意思。可作为看完 Magic 意犹未尽时闲看。",
-		"tags": [
-			"组件"
-		],
-		"stars": 3
-	},
-	{
 		"name": "Awwwards",
 		"url": "https://www.awwwards.com/",
 		"logo": "https://assets.awwwards.com/assets/images/favicon.svg",
 		"description": "网站评选网站，你总能从这里发现惊艳的网站",
-		"tags": [
-			"网站集"
-		],
-		"stars": 3
-	},
-	{
-		"name": "CSS Design Awards",
-		"url": "https://www.cssdesignawards.com/",
-		"logo": "/images/share/aaae2bf4f74c8eb1.svg",
-		"description": "网站评选网站，跟 Awwwards 类似，可以看到每期的优秀网站。观感上会好些。",
-		"tags": [
-			"网站集"
-		],
-		"stars": 3
-	},
-	{
-		"name": "404s.design",
-		"logo": "/images/share/5c9a8b7deb717c5f.svg",
-		"url": "https://www.404s.design/",
-		"description": "收集 404 设计的网站，无聊的时候可以看下。",
 		"tags": [
 			"网站集"
 		],
@@ -241,25 +158,5 @@
 			"3D"
 		],
 		"stars": 4
-	},
-	{
-		"name": "Tearable UI",
-		"logo": "/images/share/5ec6be11bd351e3e.webp",
-		"url": "https://pushmatrix.github.io/tearable/",
-		"description": "将页面交互，变成一张张可以撕破的画布",
-		"tags": [
-			"3D"
-		],
-		"stars": 3
-	},
-	{
-		"name": "Flux Pic Shader",
-		"logo": "/images/share/78a58c0955934e8d.webp",
-		"url": "https://shaders.fluxpic.com/",
-		"description": "流体动画工具，说不定以后可以参考",
-		"tags": [
-			"动画"
-		],
-		"stars": 3
 	}
 ]

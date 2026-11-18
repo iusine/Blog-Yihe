@@ -11,19 +11,5 @@
 			"Figma",
 			"阮周刊"
 		]
-	},
-	{
-		"name": "Path Motion",
-		"year": 2025,
-		"description": "在线 svg path 工具，针对 path 绘制、压缩、运动等功能",
-		"image": "https://path-motion.yysuni.com/favicon.svg",
-		"url": "https://path-motion.yysuni.com/canvas",
-		"tags": [
-			"SVG",
-			"Path",
-			"Motion",
-			"阮周刊"
-		],
-		"github": "https://github.com/YYsuni/path-motion"
 	}
 ]

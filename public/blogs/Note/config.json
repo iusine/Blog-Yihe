@@ -1,0 +1,12 @@
+{
+  "title": "图床工具配置与使用",
+  "tags": [
+    "教程",
+    "GitHub"
+  ],
+  "date": "2026-11-19T18:09",
+  "summary": "图床工具配置与使用教程，主要就是使用到GitHub+CDN 站源生成一个能访问的图片链接，Github作为存储仓库。",
+  "cover": "/blogs/Note/76071a1ab16bd581.png",
+  "hidden": false,
+  "category": "技术"
+}

@@ -173,7 +173,8 @@ export async function fetchProvinceGeo(adcode: string | number): Promise<GeoColl
 	if (cached) return cached
 
 	try {
-		const res = await fetch(`https://geo.datav.aliyun.com/areas_v3/bound/${key}_full.json`)
+		// DataV 对带 Referer 的请求返回 403，而浏览器跨域 fetch 默认会带上
+		const res = await fetch(`https://geo.datav.aliyun.com/areas_v3/bound/${key}_full.json`, { referrerPolicy: 'no-referrer' })
 		if (!res.ok) return null
 		const data = (await res.json()) as GeoCollection
 		provinceCache.set(key, data)

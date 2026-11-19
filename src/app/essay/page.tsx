@@ -7,10 +7,13 @@ import { useAuthStore } from '@/hooks/use-auth'
 import { useSize } from '@/hooks/use-size'
 import { toast } from 'sonner'
 import { pushEssays } from './services/push-essays'
+import essaySeed from '../../../public/essays/index.json'
 
 type NoteStyle = 'sunny' | 'mint' | 'sky' | 'lavender' | 'paper'
 type EssayNote = { id: string; title: string; content: string; style: NoteStyle; createdAt: string; stars: number }
 const STORAGE_KEY = 'blog-yihe-essay-notes'
+/** 构建时就把线上便签带进首屏，避免打开页面先闪一下空状态 */
+const seedNotes: EssayNote[] = (essaySeed as EssayNote[]).map(note => ({ ...note, stars: typeof note.stars === 'number' ? note.stars : 0 }))
 const styles: Array<{ id: NoteStyle; label: string; className: string }> = [
 	{ id: 'sunny', label: '暖阳', className: 'bg-[#fff1b8] text-[#604c27] border-[#f4d978]' },
 	{ id: 'mint', label: '薄荷', className: 'bg-[#d9f5e7] text-[#285443] border-[#a9dfc1]' },
@@ -22,7 +25,8 @@ const styleClass = (style: NoteStyle) => styles.find(item => item.id === style)?
 const clampPercent = (value: number, inset: number) => Math.min(100 - inset, Math.max(inset, value))
 
 export default function Page() {
-	const [notes, setNotes] = useState<EssayNote[]>([])
+	const [notes, setNotes] = useState<EssayNote[]>(seedNotes)
+	const [loaded, setLoaded] = useState(seedNotes.length > 0)
 	const [editorOpen, setEditorOpen] = useState(false)
 	const [title, setTitle] = useState('')
 	const [content, setContent] = useState('')
@@ -60,9 +64,13 @@ export default function Page() {
 				}
 			} catch {
 				remoteIdsRef.current = null
-				if (!cancelled) setNotes(local)
+				const merged = [...seedNotes, ...local.filter(item => !seedNotes.some(entry => entry.id === item.id))]
+				if (!cancelled) setNotes(merged)
 			}
-			if (!cancelled) hydratedRef.current = true
+			if (!cancelled) {
+				hydratedRef.current = true
+				setLoaded(true)
+			}
 		})()
 		return () => { cancelled = true }
 	}, [])
@@ -133,7 +141,7 @@ export default function Page() {
 		} finally { setPublishing(false) }
 	}
 	const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>, id: string) => {
-		const position = positions[id]; if (!position) return
+		const position = positions[id] ?? base.get(id); if (!position) return
 		zRef.current += 1
 		setPositions(previous => ({ ...previous, [id]: { ...previous[id], z: zRef.current } }))
 		dragRef.current = { id, startX: event.clientX, startY: event.clientY, originX: position.x, originY: position.y }
@@ -155,8 +163,8 @@ export default function Page() {
 			<div className='mt-4 flex justify-end'><button type='button' onClick={publish} disabled={!content.trim() || publishing} className='brand-btn justify-center rounded-lg px-5 py-2 disabled:cursor-not-allowed disabled:opacity-40'>{publishing ? '同步中…' : '贴到墙上'}</button></div>
 		</section>}
 		<div ref={containerRef} onPointerMove={handlePointerMove} onPointerUp={() => { dragRef.current = null }} onPointerCancel={() => { dragRef.current = null }} onPointerLeave={() => { dragRef.current = null }} className='relative mx-auto mt-6 min-h-[620px] w-full max-w-5xl flex-1 touch-none overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]'>
-			{notes.length === 0 && <div className='flex h-[620px] flex-col items-center justify-center text-center'><div className='text-5xl'>📝</div><p className='mt-3 text-white'>还没有随笔</p><p className='text-secondary mt-2 text-xs'>写下第一张便签，让墙面热闹起来吧。</p></div>}
-			{notes.map(note => { const position = positions[note.id]; if (!position) return null; return <div key={note.id} onPointerDown={event => handlePointerDown(event, note.id)} className='absolute cursor-grab select-none active:cursor-grabbing' style={{ width: cardWidth, left: `${clampPercent(position.x, insetX)}%`, top: `${clampPercent(position.y, insetY)}%`, zIndex: position.z, transform: `translate(-50%, -50%) rotate(${position.rotate}deg)` }}><div className={`min-h-[150px] rounded-[6px] border p-4 pb-5 shadow-[0_16px_30px_-18px_rgba(0,0,0,0.55)] ${styleClass(note.style)}`}><div className='mb-3 h-1 w-12 rounded-full bg-black/10' />{note.title && <h3 className='mb-2 text-sm font-semibold'>{note.title}</h3>}<p className='whitespace-pre-wrap break-words text-[13px] leading-relaxed'>{note.content}</p><div className='mt-4 flex items-center justify-between'><time className='text-[10px] opacity-50'>{note.createdAt.slice(0, 10)}</time><span className='flex items-center' aria-label={`喜爱程度 ${note.stars} 星`}>{Array.from({ length: 5 }, (_, index) => <Star key={index} className={`h-3.5 w-3.5 ${index < note.stars ? 'fill-current' : 'opacity-25'}`} />)}</span></div></div></div> })}
+			{loaded && notes.length === 0 && <div className='flex h-[620px] flex-col items-center justify-center text-center'><div className='text-5xl'>📝</div><p className='mt-3 text-white'>还没有随笔</p><p className='text-secondary mt-2 text-xs'>写下第一张便签，让墙面热闹起来吧。</p></div>}
+			{notes.map(note => { const position = positions[note.id] ?? base.get(note.id); if (!position) return null; return <div key={note.id} onPointerDown={event => handlePointerDown(event, note.id)} className='absolute cursor-grab select-none active:cursor-grabbing' style={{ width: cardWidth, left: `${clampPercent(position.x, insetX)}%`, top: `${clampPercent(position.y, insetY)}%`, zIndex: position.z, transform: `translate(-50%, -50%) rotate(${position.rotate}deg)` }}><div className={`min-h-[150px] rounded-[6px] border p-4 pb-5 shadow-[0_16px_30px_-18px_rgba(0,0,0,0.55)] ${styleClass(note.style)}`}><div className='mb-3 h-1 w-12 rounded-full bg-black/10' />{note.title && <h3 className='mb-2 text-sm font-semibold'>{note.title}</h3>}<p className='whitespace-pre-wrap break-words text-[13px] leading-relaxed'>{note.content}</p><div className='mt-4 flex items-center justify-between'><time className='text-[10px] opacity-50'>{note.createdAt.slice(0, 10)}</time><span className='flex items-center' aria-label={`喜爱程度 ${note.stars} 星`}>{Array.from({ length: 5 }, (_, index) => <Star key={index} className={`h-3.5 w-3.5 ${index < note.stars ? 'fill-current' : 'opacity-25'}`} />)}</span></div></div></div> })}
 			{notes.length > 0 && <button type='button' onClick={() => setSalt(value => value + 1)} className='bg-card absolute right-4 bottom-4 z-50 flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs text-white backdrop-blur-sm hover:bg-white/15'><RotateCcw className='h-3.5 w-3.5' />重新散落</button>}
 		</div>
 	</main>

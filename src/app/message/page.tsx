@@ -16,18 +16,24 @@ import { derivePublicKeyPem } from './lib/crypto'
 import type { Message } from './types'
 import { useAuthStore } from '@/hooks/use-auth'
 import { commitFiles, fileTreeItem } from '@/lib/github-commit'
+import messageSeed from '../../../public/message/list.json'
+import configSeed from '../../../public/message/config.json'
 
 const CONFIG_PATH = 'public/message/config.json'
 
+// 构建时把留言和公钥带进首屏，打开页面不会再先闪一下「留言墙还是空的」
+const seedMessages = messageSeed as unknown as Message[]
+const seedPublicKey = configSeed.ownerPublicKey?.includes('BEGIN PUBLIC KEY') ? configSeed.ownerPublicKey : null
+
 export default function Page() {
-	const [messages, setMessages] = useState<Message[]>([])
+	const [messages, setMessages] = useState<Message[]>(seedMessages)
 	const [ownerEntries, setOwnerEntries] = useState<OwnerEntry[]>([])
-	const [ownerPublicKey, setOwnerPublicKey] = useState<string | null>(null)
+	const [ownerPublicKey, setOwnerPublicKey] = useState<string | null>(seedPublicKey)
 	const [composeOpen, setComposeOpen] = useState(false)
 	const [panelOpen, setPanelOpen] = useState(false)
 	const [openItem, setOpenItem] = useState<WallItem | null>(null)
 	const [publishing, setPublishing] = useState(false)
-	const [loading, setLoading] = useState(true)
+	const [loading, setLoading] = useState(seedMessages.length === 0)
 
 	const keyInputRef = useRef<HTMLInputElement>(null)
 	const pendingRef = useRef<(() => void) | null>(null)
@@ -55,7 +61,7 @@ export default function Page() {
 			const data = (await res.json()) as { ownerPublicKey?: string | null }
 			setOwnerPublicKey(data?.ownerPublicKey?.includes('BEGIN PUBLIC KEY') ? data.ownerPublicKey : null)
 		} catch {
-			setOwnerPublicKey(null)
+			// 网络抖动时保留构建时的公钥，避免站主功能按钮闪一下
 		}
 	}, [])
 
@@ -218,7 +224,7 @@ export default function Page() {
 
 			{/* 墙 */}
 			<div className='absolute inset-0 pt-20 pb-16 max-sm:pt-36'>
-				<MessageWall items={wallItems} onOpen={setOpenItem} />
+				<MessageWall items={wallItems} loading={loading} onOpen={setOpenItem} />
 			</div>
 
 			{/* 右下角操作 */}

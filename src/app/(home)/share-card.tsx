@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Card from '@/components/card'
+import PicbedImage from '@/components/picbed-image'
 import { useCenterStore } from '@/hooks/use-center'
 import { useConfigStore } from './stores/config-store'
 import { CARD_SPACING } from '@/consts'
@@ -58,7 +59,7 @@ export default function ShareCard() {
                     title={randomItem.name}
                     className='flex min-w-0 items-center gap-3 transition-opacity hover:opacity-80'>
                     <span className='relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border bg-white/10 p-1'>
-                        <img src={randomItem.logo} alt={randomItem.name} className='h-full w-full object-contain' />
+                        <PicbedImage src={randomItem.logo} alt={randomItem.name} className='h-full w-full object-contain' />
                     </span>
 
                     <span className='min-w-0 flex-1 truncate text-sm font-medium'>{randomItem.name}</span>

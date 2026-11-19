@@ -4,6 +4,7 @@ import { useRef } from 'react'
 import { motion } from 'motion/react'
 import { toast } from 'sonner'
 import { useWriteStore } from '../../stores/write-store'
+import PicbedImage from '@/components/picbed-image'
 
 type CoverSectionProps = {
 	delay?: number
@@ -88,7 +89,7 @@ export function CoverSection({ delay = 0 }: CoverSectionProps) {
 				}}
 				onDrop={handleCoverDrop}>
 				{!!coverPreviewUrl ? (
-					<img src={coverPreviewUrl} alt='cover preview' className='h-full w-full rounded-2xl object-cover' />
+					<PicbedImage src={coverPreviewUrl} alt='cover preview' className='h-full w-full rounded-2xl object-cover' />
 				) : (
 					<div className='grid h-full w-full cursor-pointer place-items-center transition-colors hover:bg-white/20' onClick={handleClickUpload}>
 						<span className='text-sm leading-none text-neutral-400'>封面</span>

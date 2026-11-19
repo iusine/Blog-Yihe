@@ -1,18 +1,25 @@
 'use client'
 
+import { useMemo } from 'react'
 import { motion } from 'motion/react'
 // 公式样式只随文章渲染加载，不再放进全站 globals.css
 import 'katex/dist/katex.min.css'
 import { INIT_DELAY } from '@/consts'
+import { enhanceRenderedHtml } from '@/lib/enhance-html'
 import { useMarkdownRender } from '@/hooks/use-markdown-render'
 import { useSize } from '@/hooks/use-size'
 import { BlogSidebar } from '@/components/blog-sidebar'
 import { useConfigStore } from '@/app/(home)/stores/config-store'
 import type { BlogAttachment } from '@/app/blog/types'
+import type { TocItem } from '@/lib/markdown-renderer'
 import { formatBytes } from '@/lib/utils'
 
 type BlogPreviewProps = {
-	markdown: string
+	/** 即时预览（编辑器）用：浏览器内渲染 markdown */
+	markdown?: string
+	/** 文章页用：构建期渲染好的 HTML，浏览器只需增强图片/代码块 */
+	html?: string
+	toc?: TocItem[]
 	title: string
 	tags: string[]
 	date: string
@@ -20,25 +27,29 @@ type BlogPreviewProps = {
 	cover?: string
 	slug?: string
 	attachments?: BlogAttachment[]
+	/** 首屏直接显示，不加淡入延迟 */
+	instant?: boolean
 }
 
-export function BlogPreview({ markdown, title, tags, date, summary, cover, slug, attachments }: BlogPreviewProps) {
+export function BlogPreview({ markdown, html, toc: initialToc, title, tags, date, summary, cover, slug, attachments, instant = false }: BlogPreviewProps) {
 	const { maxSM: isMobile } = useSize()
-	const { content, toc, loading } = useMarkdownRender(markdown)
+	const { content: clientContent, toc: clientToc, loading } = useMarkdownRender(markdown || '', !html)
+	const content = useMemo(() => (html ? enhanceRenderedHtml(html) : clientContent), [html, clientContent])
+	const toc = html ? initialToc || [] : clientToc
 	const { siteContent } = useConfigStore()
 	const summaryInContent = siteContent.summaryInContent ?? false
 	const list = attachments?.filter(item => item?.url && item?.name) || []
 
-	if (loading) {
+	if (!html && loading) {
 		return <div className='text-secondary flex h-full items-center justify-center text-sm'>渲染中...</div>
 	}
 
 	return (
 		<div className='mx-auto flex max-w-[1140px] justify-center gap-6 px-6 pt-28 pb-12 max-sm:px-0'>
 			<motion.article
-				initial={{ opacity: 0 }}
+				initial={instant ? false : { opacity: 0 }}
 				animate={{ opacity: 1 }}
-				transition={{ delay: INIT_DELAY }}
+				transition={instant ? undefined : { delay: INIT_DELAY }}
 				className='card bg-article static flex-1 overflow-auto rounded-xl p-8 max-sm:rounded-none max-sm:p-4'>
 				<div>
 					<div className='text-center text-2xl font-semibold'>{title}</div>
@@ -73,7 +84,7 @@ export function BlogPreview({ markdown, title, tags, date, summary, cover, slug,
 				</div>
 			</motion.article>
 
-			{!isMobile && <BlogSidebar cover={cover} summary={summary} toc={toc} slug={slug} />}
+			{!isMobile && <BlogSidebar cover={cover} summary={summary} toc={toc} slug={slug} instant={instant} />}
 		</div>
 	)
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import PicbedImage from '@/components/picbed-image'
 import type { Photo } from '../types'
 
 const CARD_LAYOUT = [
@@ -31,7 +32,7 @@ export default function PhotoStack({ photos, onOpen }: { photos: Photo[]; onOpen
 							transformOrigin: 'left top',
 							zIndex: layout.z
 						}}>
-						<img
+						<PicbedImage
 							src={photo.src}
 							alt={photo.title}
 							draggable={false}

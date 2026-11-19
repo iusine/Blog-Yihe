@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { ArrowLeft, Shuffle, Upload } from 'lucide-react'
+import PicbedImage from '@/components/picbed-image'
 import type { Photo } from '../types'
 import { useSize } from '@/hooks/use-size'
 import { scatterLayout, type ScatterPosition } from '../lib/photos'
@@ -191,7 +192,7 @@ export default function PhotoWall({ cityName, provinceName, photos, canUpload, o
 									transform: `translate(-50%, -50%) rotate(${position.rotate}deg) scale(${position.scale})`
 								}}>
 								<span className='block w-fit rounded-[10px] border-[6px] border-white bg-white/10 pb-5 shadow-[0_18px_36px_-18px_rgba(60,40,30,0.55)] transition-shadow'>
-									<img
+									<PicbedImage
 										src={photo.src}
 										alt={photo.title}
 										loading='lazy'

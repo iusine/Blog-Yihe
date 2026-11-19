@@ -8,6 +8,9 @@ import { Markdown } from '@tiptap/markdown'
 import Link from '@tiptap/extension-link'
 import { Placeholder } from '@tiptap/extensions'
 import {
+	AlignCenter,
+	AlignLeft,
+	AlignRight,
 	Bold,
 	Code,
 	Eraser,
@@ -26,6 +29,7 @@ import {
 	Minus,
 	Pilcrow,
 	Quote,
+	RotateCcw,
 	Sigma,
 	SquareCode,
 	Strikethrough,
@@ -47,10 +51,34 @@ import { FootnoteDefinition, FootnoteRef } from '../extensions/footnotes'
 import { buildTocMarkdown } from '../lib/toc'
 import type { ImageItem } from '../types'
 import { cn } from '@/lib/utils'
+import { IMAGE_WIDTH_PRESETS } from '@/lib/image-style'
 import { promptDialog, selectDialog } from '@/components/themed-dialog'
 
 function imagesToMarkdown(items: ImageItem[]) {
 	return items.map(item => (item.type === 'url' ? `![](${item.url})` : `![](local-image:${item.id})`)).join('\n')
+}
+
+/** 从拖拽 / 剪贴板里取图片文件；有的浏览器只在 items 里给文件。 */
+function imageFilesFromTransfer(transfer: DataTransfer | null): File[] {
+	if (!transfer) return []
+
+	const fromFiles = Array.from(transfer.files || []).filter(file => file.type.startsWith('image/'))
+	if (fromFiles.length > 0) return fromFiles
+
+	return Array.from(transfer.items || [])
+		.filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+		.map(item => item.getAsFile())
+		.filter((file): file is File => !!file)
+}
+
+/** 源码模式下把鼠标落点换算成 textarea 里的字符位置。 */
+function sourceCaretFromPoint(textarea: HTMLTextAreaElement, x: number, y: number): number | null {
+	const doc = document as Document & {
+		caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null
+	}
+	const position = doc.caretPositionFromPoint?.(x, y)
+	if (!position || position.offsetNode !== textarea) return null
+	return Math.max(0, Math.min(position.offset, textarea.value.length))
 }
 
 function insertMarkdownAt(editor: Editor, markdown: string, pos?: number) {
@@ -207,14 +235,16 @@ function EditorToolbar({ editor, disabled }: { editor: Editor | null; disabled: 
 
 	const item = (active: boolean) =>
 		cn(
-			'flex h-8 min-w-8 items-center justify-center gap-1 rounded-lg px-2 text-xs transition-colors',
+			'flex h-8 min-w-8 shrink-0 items-center justify-center gap-1 rounded-lg px-2 text-xs transition-colors max-sm:h-9 max-sm:min-w-9',
 			active ? 'bg-brand/15 text-brand' : 'text-secondary hover:bg-brand/10 hover:text-brand'
 		)
 
-	const Divider = () => <span className='mx-1 h-5 w-px bg-black/10' />
+	const Divider = () => <span className='mx-1 h-5 w-px shrink-0 bg-black/10' />
 
 	return (
-		<div className={cn('mb-3 flex flex-wrap items-center gap-0.5 rounded-xl border bg-white/[0.08] p-1', disabled && 'hidden')}>
+		<div className={cn('mb-3 rounded-xl border bg-white/[0.08] p-1', disabled && 'hidden')}>
+			{/* 手机上改为横向滚动的一行，避免二十多个按钮堆满半个屏幕 */}
+			<div className='scrollbar-none flex flex-wrap items-center gap-0.5 max-sm:flex-nowrap max-sm:gap-1 max-sm:overflow-x-auto'>
 			{/* 段落 */}
 			<button type='button' title='正文' className={item(editor.isActive('paragraph'))} onClick={run(() => editor.chain().focus().setParagraph().run())}>
 				<Pilcrow className='size-4' />
@@ -315,10 +345,11 @@ function EditorToolbar({ editor, disabled }: { editor: Editor | null; disabled: 
 				onClick={run(() => editor.chain().focus().unsetAllMarks().clearNodes().run())}>
 				<Eraser className='size-4' />
 			</button>
+			</div>
 
 			{/* 光标在表格里时，多出一行表格操作（Typora 的表格右键菜单简化版） */}
 			{editor.isActive('table') && (
-				<div className='mt-1 flex w-full flex-wrap items-center gap-1 border-t pt-1'>
+				<div className='scrollbar-none mt-1 flex w-full flex-wrap items-center gap-1 border-t pt-1 max-sm:flex-nowrap max-sm:overflow-x-auto'>
 					<span className='text-secondary px-1 text-[11px]'>表格</span>
 					{[
 						['+ 行', () => editor.chain().focus().addRowAfter().run()],
@@ -331,11 +362,74 @@ function EditorToolbar({ editor, disabled }: { editor: Editor | null; disabled: 
 						<button
 							key={label as string}
 							type='button'
-							className='text-secondary hover:bg-brand/10 hover:text-brand rounded-lg px-2 py-1 text-[11px] transition-colors'
+							className='text-secondary hover:bg-brand/10 hover:text-brand shrink-0 rounded-lg px-2 py-1 text-[11px] whitespace-nowrap transition-colors'
 							onClick={run(action as () => void)}>
 							{label as string}
 						</button>
 					))}
+				</div>
+			)}
+
+			{/* 选中图片时：宽度 / 对齐（Typora 的图片样式） */}
+			{editor.isActive('image') && (
+				<div className='scrollbar-none mt-1 flex w-full flex-wrap items-center gap-1 border-t pt-1 max-sm:flex-nowrap max-sm:overflow-x-auto'>
+					<span className='text-secondary px-1 text-[11px]'>图片</span>
+					{(() => {
+						const attrs = editor.getAttributes('image')
+						const rawWidth = Number(attrs.width)
+						const width = Number.isFinite(rawWidth) && rawWidth > 0 ? Math.min(100, Math.max(10, Math.round(rawWidth))) : null
+						const align = attrs.align === 'left' || attrs.align === 'right' ? attrs.align : 'center'
+						const activeWidth = width ?? 40
+						const setAttrs = (patch: Record<string, unknown>) => editor.chain().focus().updateAttributes('image', patch).run()
+						const chip = (active: boolean) =>
+							cn(
+								'flex shrink-0 items-center justify-center rounded-lg px-2 py-1 text-[11px] whitespace-nowrap transition-colors max-sm:px-3 max-sm:py-1.5',
+								active ? 'bg-brand/15 text-brand' : 'text-secondary hover:bg-brand/10 hover:text-brand'
+							)
+
+						return (
+							<>
+								{IMAGE_WIDTH_PRESETS.map(preset => (
+									<button
+										key={preset}
+										type='button'
+										title={`宽度 ${preset}%`}
+										className={chip(activeWidth === preset)}
+										onMouseDown={event => event.preventDefault()}
+										onClick={() => setAttrs({ width: preset === 40 ? null : preset, height: null })}>
+										{preset}%
+									</button>
+								))}
+								<span className='mx-1 h-5 w-px bg-black/10' />
+								{(
+									[
+										{ value: 'left', label: '左对齐', Icon: AlignLeft },
+										{ value: 'center', label: '居中', Icon: AlignCenter },
+										{ value: 'right', label: '右对齐', Icon: AlignRight }
+									] as const
+								).map(({ value, label, Icon }) => (
+									<button
+										key={value}
+										type='button'
+										title={label}
+										className={chip(align === value)}
+										onMouseDown={event => event.preventDefault()}
+										onClick={() => setAttrs({ align: value === 'center' ? null : value })}>
+										<Icon className='size-3.5' />
+									</button>
+								))}
+								<button
+									type='button'
+									title='恢复默认样式'
+									className={chip(false)}
+									onMouseDown={event => event.preventDefault()}
+									onClick={() => setAttrs({ width: null, height: null, align: null })}>
+									<RotateCcw className='size-3.5' />
+								</button>
+								<span className='text-secondary ml-auto px-1 text-[11px] max-sm:hidden'>拖拽右下角可调整大小</span>
+							</>
+						)
+					})()}
 				</div>
 			)}
 		</div>
@@ -350,6 +444,29 @@ export function WriteEditor() {
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 
 	addFilesRef.current = addFiles
+
+	/** 源码模式下把图片插入 textarea 的当前光标处（拖入 / 粘贴共用）。 */
+	const insertSourceImages = async (files: File[], selectionStart: number, selectionEnd: number) => {
+		const resultImages = await addFilesRef.current(files)
+		if (resultImages.length === 0) return
+
+		const state = useWriteStore.getState()
+		const current = state.form.md
+		const start = Math.max(0, Math.min(selectionStart, current.length))
+		const end = Math.max(start, Math.min(selectionEnd, current.length))
+		const snippet = imagesToMarkdown(resultImages)
+		state.updateForm({ md: `${current.slice(0, start)}${snippet}${current.slice(end)}` })
+
+		const caret = start + snippet.length
+		requestAnimationFrame(() => {
+			const textarea = textareaRef.current
+			if (!textarea) return
+			textarea.focus()
+			textarea.setSelectionRange(caret, caret)
+		})
+
+		toast.success(resultImages.length > 1 ? `已添加 ${resultImages.length} 张图片` : '已添加图片')
+	}
 
 	// Ctrl+/ 切换源代码模式（和 Typora 的习惯一致）
 	useEffect(() => {
@@ -452,17 +569,20 @@ export function WriteEditor() {
 
 				const files = event.dataTransfer?.files
 				if (files && files.length > 0) {
+					event.preventDefault()
 					const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
-					if (imageFiles.length > 0) {
-						event.preventDefault()
-						const coords = view.posAtCoords({ left: event.clientX, top: event.clientY })
-						addFilesRef.current(imageFiles).then(resultImages => {
-							const current = editorRef.current
-							if (!current || resultImages.length === 0) return
-							insertMarkdownAt(current, imagesToMarkdown(resultImages), coords?.pos)
-						})
+					if (imageFiles.length === 0) {
+						toast.error('只能拖入图片文件')
 						return true
 					}
+
+					const coords = view.posAtCoords({ left: event.clientX, top: event.clientY })
+					addFilesRef.current(imageFiles).then(resultImages => {
+						const current = editorRef.current
+						if (!current || resultImages.length === 0) return
+						insertMarkdownAt(current, imagesToMarkdown(resultImages), coords?.pos)
+					})
+					return true
 				}
 
 				const md = event.dataTransfer?.getData('text/markdown') || event.dataTransfer?.getData('text/plain') || ''
@@ -490,13 +610,15 @@ export function WriteEditor() {
 		editor.commands.setContent(form.md, { contentType: 'markdown', emitUpdate: false })
 	}, [form.md, editor])
 
-	// 从源码模式切回所见即所得时，把光标放到正文末尾，避免焦点丢失
+	// 切换模式时才转移焦点（首次加载默认所见即所得，不主动聚焦，避免打开就滚到文末/弹键盘）
+	const prevSourceMode = useRef(sourceMode)
 	useEffect(() => {
-		if (!sourceMode && editor) {
-			editor.commands.focus('end')
-		}
+		if (prevSourceMode.current === sourceMode) return
+		prevSourceMode.current = sourceMode
 		if (sourceMode) {
 			textareaRef.current?.focus()
+		} else if (editor) {
+			editor.commands.focus('end')
 		}
 	}, [sourceMode, editor])
 
@@ -521,7 +643,7 @@ export function WriteEditor() {
 			{/* 段落 / 格式工具条：源代码模式下没有意义，直接隐藏 */}
 			<EditorToolbar editor={editor} disabled={sourceMode} />
 
-			<div className='relative h-[650px] w-full flex-1 overflow-y-auto rounded-xl text-sm max-sm:h-[52svh]'>
+			<div className='relative h-[650px] w-full flex-1 overflow-y-auto rounded-xl text-sm max-sm:h-[52svh] max-sm:text-base'>
 				{/* 源代码模式：直接编辑 Markdown 文本 */}
 				<textarea
 					ref={textareaRef}
@@ -529,10 +651,34 @@ export function WriteEditor() {
 					onChange={event => {
 						updateForm({ md: event.target.value })
 					}}
+					onDragOver={event => {
+						if (Array.from(event.dataTransfer?.types || []).includes('Files')) event.preventDefault()
+					}}
+					onDrop={event => {
+						if (!Array.from(event.dataTransfer?.types || []).includes('Files')) return
+						event.preventDefault()
+
+						const files = imageFilesFromTransfer(event.dataTransfer)
+						if (files.length === 0) {
+							toast.error('只能拖入图片文件')
+							return
+						}
+
+						const textarea = event.currentTarget
+						const at = sourceCaretFromPoint(textarea, event.clientX, event.clientY)
+						void insertSourceImages(files, at ?? textarea.selectionStart, at ?? textarea.selectionEnd)
+					}}
+					onPaste={event => {
+						const files = imageFilesFromTransfer(event.clipboardData)
+						if (files.length === 0) return
+						event.preventDefault()
+						const textarea = event.currentTarget
+						void insertSourceImages(files, textarea.selectionStart, textarea.selectionEnd)
+					}}
 					spellCheck={false}
 					placeholder='在这里直接写 Markdown，例如：# 标题'
 					className={cn(
-						'text-primary h-full w-full resize-none rounded-xl bg-black/[0.02] p-4 font-mono text-[13px] leading-relaxed outline-none',
+						'text-primary h-full w-full resize-none rounded-xl bg-black/[0.02] p-4 font-mono text-[13px] leading-relaxed outline-none max-sm:text-base',
 						!sourceMode && 'hidden'
 					)}
 				/>
@@ -544,7 +690,7 @@ export function WriteEditor() {
 			</div>
 
 			<div className='text-secondary mt-2 flex items-center justify-between text-[11px]'>
-				<span>{sourceMode ? '源代码模式：正在编辑 Markdown 原文' : '所见即所得模式'}</span>
+				<span>{sourceMode ? '源代码模式：可拖入 / 粘贴图片' : '所见即所得：可拖入 / 粘贴图片，选中图片可调样式'}</span>
 				<span>
 					{form.md.length} 字符 · Ctrl+/ 切换模式
 				</span>

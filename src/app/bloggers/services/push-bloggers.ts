@@ -1,5 +1,7 @@
 import { commitFiles, addHashedImage, fileTreeItem } from '@/lib/github-commit'
 import type { TreeItem } from '@/lib/github-client'
+import { buildPicbedUrl, PICBED_CATEGORIES } from '@/lib/picbed'
+import { createPicbedBatch } from '@/lib/picbed-upload'
 import type { Blogger } from '../grid-view'
 import type { MediaItem } from '@/components/media-upload-dialog'
 import { toast } from 'sonner'
@@ -24,6 +26,8 @@ export async function pushBloggers(params: PushBloggersParams): Promise<Blogger[
 		prepare: async ctx => {
 			const treeItems: TreeItem[] = []
 			const uploadedHashes = new Set<string>()
+			const batch = createPicbedBatch()
+			const pendingAvatars: Array<{ url: string; localPath: string; cdnRepoPath?: string }> = []
 			let updatedBloggers = [...bloggers]
 
 			if (avatarItems && avatarItems.size > 0) {
@@ -31,10 +35,19 @@ export async function pushBloggers(params: PushBloggersParams): Promise<Blogger[
 				for (const [url, avatarItem] of avatarItems.entries()) {
 					if (avatarItem.type !== 'file') continue
 
-					const { publicPath, treeItem } = await addHashedImage(ctx, avatarItem.file, 'images/blogger', uploadedHashes)
+					const { publicPath, treeItem, picbed } = await addHashedImage(ctx, avatarItem.file, 'images/blogger', uploadedHashes, {
+						picbedCategory: PICBED_CATEGORIES.other
+					})
 					if (treeItem) treeItems.push(treeItem)
-					updatedBloggers = updatedBloggers.map(b => (b.url === url ? { ...b, avatar: publicPath } : b))
+					if (picbed) batch.add(picbed.repoPath, picbed.file)
+					pendingAvatars.push({ url, localPath: publicPath, cdnRepoPath: picbed?.repoPath })
 				}
+			}
+
+			const picbedOk = await batch.flush(ctx.token)
+			for (const { url, localPath, cdnRepoPath } of pendingAvatars) {
+				const avatar = picbedOk && cdnRepoPath ? buildPicbedUrl(cdnRepoPath) : localPath
+				updatedBloggers = updatedBloggers.map(b => (b.url === url ? { ...b, avatar } : b))
 			}
 
 			const sha = await ctx.blobFromJson(updatedBloggers)

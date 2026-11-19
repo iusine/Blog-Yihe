@@ -12,7 +12,7 @@ export function useWriteData() {
 		for (const img of images) {
 			if (img.type === 'file') {
 				const placeholder = `local-image:${img.id}`
-				mdForPreview = mdForPreview.split(`(${placeholder})`).join(`(${img.previewUrl})`)
+				mdForPreview = mdForPreview.split(placeholder).join(img.previewUrl)
 			}
 		}
 		return mdForPreview

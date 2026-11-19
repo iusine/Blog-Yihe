@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import PicbedImage from '@/components/picbed-image'
 
 const COVER_HOVER_DELAY_MS = 1500
 const PREVIEW_OFFSET_PX = 16
@@ -91,7 +92,7 @@ export function BlogCoverHoverPreview({ preview, position }: BlogCoverHoverPrevi
 						left: position.x + PREVIEW_OFFSET_PX,
 						top: position.y + PREVIEW_OFFSET_PX
 					}}>
-					<img src={preview.src} alt='' className='w-full rounded-xl object-cover' draggable={false} />
+					<PicbedImage src={preview.src} alt='' className='w-full rounded-xl object-cover' draggable={false} />
 				</motion.div>
 			)}
 		</AnimatePresence>

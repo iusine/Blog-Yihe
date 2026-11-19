@@ -1,5 +1,7 @@
 import { commitFiles, addHashedImage, fileTreeItem } from '@/lib/github-commit'
 import type { TreeItem } from '@/lib/github-client'
+import { buildPicbedUrl, PICBED_CATEGORIES } from '@/lib/picbed'
+import { createPicbedBatch } from '@/lib/picbed-upload'
 import type { Project } from '../components/project-card'
 import type { MediaItem } from '@/components/media-upload-dialog'
 import { toast } from 'sonner'
@@ -34,6 +36,8 @@ export async function pushProjects(params: PushProjectsParams): Promise<Project[
 		prepare: async ctx => {
 			const treeItems: TreeItem[] = []
 			const uploadedHashes = new Set<string>()
+			const batch = createPicbedBatch()
+			const pendingImages: Array<{ key: string; localPath: string; cdnRepoPath?: string }> = []
 			let rows = [...projects]
 
 			if (imageItems && imageItems.size > 0) {
@@ -41,10 +45,19 @@ export async function pushProjects(params: PushProjectsParams): Promise<Project[
 				for (const [key, imageItem] of imageItems.entries()) {
 					if (imageItem.type !== 'file') continue
 
-					const { publicPath, treeItem } = await addHashedImage(ctx, imageItem.file, 'images/project', uploadedHashes)
+					const { publicPath, treeItem, picbed } = await addHashedImage(ctx, imageItem.file, 'images/project', uploadedHashes, {
+						picbedCategory: PICBED_CATEGORIES.other
+					})
 					if (treeItem) treeItems.push(treeItem)
-					rows = rows.map(row => (row.__key === key ? { ...row, image: publicPath } : row))
+					if (picbed) batch.add(picbed.repoPath, picbed.file)
+					pendingImages.push({ key, localPath: publicPath, cdnRepoPath: picbed?.repoPath })
 				}
+			}
+
+			const picbedOk = await batch.flush(ctx.token)
+			for (const { key, localPath, cdnRepoPath } of pendingImages) {
+				const image = picbedOk && cdnRepoPath ? buildPicbedUrl(cdnRepoPath) : localPath
+				rows = rows.map(row => (row.__key === key ? { ...row, image } : row))
 			}
 
 			// 兜底：如果还有 blob: 预览地址说明图片没登记，直接报错，避免把临时地址写进仓库

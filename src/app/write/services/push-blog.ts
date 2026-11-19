@@ -1,6 +1,8 @@
 import { commitFiles, addHashedImage, addHashedFile, fileTreeItem } from '@/lib/github-commit'
 import { prepareBlogsIndex } from '@/lib/blog-index'
 import type { TreeItem } from '@/lib/github-client'
+import { buildPicbedUrl, PICBED_CATEGORIES } from '@/lib/picbed'
+import { createPicbedBatch } from '@/lib/picbed-upload'
 import type { ImageItem, AttachmentItem, AttachmentMeta } from '../types'
 import { toast } from 'sonner'
 import { formatDateTimeLocal } from '../stores/write-store'
@@ -59,15 +61,28 @@ export async function pushBlog(params: PushBlogParams): Promise<void> {
 
 			if (allLocalImages.length > 0) {
 				toast.info('正在上传图片...')
-				for (const { img, id } of allLocalImages) {
-					const { publicPath, treeItem } = await addHashedImage(ctx, img.file, `blogs/${form.slug}`, uploadedHashes)
-					if (treeItem) treeItems.push(treeItem)
+				const batch = createPicbedBatch()
+				const pendingImages: Array<{ id: string; localPath: string; cdnRepoPath?: string }> = []
 
+				for (const { img, id } of allLocalImages) {
+					const { publicPath, treeItem, picbed } = await addHashedImage(ctx, img.file, `blogs/${form.slug}`, uploadedHashes, {
+						picbedCategory: PICBED_CATEGORIES.articles
+					})
+					if (treeItem) treeItems.push(treeItem)
+					if (picbed) batch.add(picbed.repoPath, picbed.file)
+					pendingImages.push({ id, localPath: publicPath, cdnRepoPath: picbed?.repoPath })
+				}
+
+				const picbedOk = await batch.flush(ctx.token)
+
+				for (const { id, localPath, cdnRepoPath } of pendingImages) {
+					const finalPath = picbedOk && cdnRepoPath ? buildPicbedUrl(cdnRepoPath) : localPath
 					const placeholder = `local-image:${id}`
-					mdToUpload = mdToUpload.split(`(${placeholder})`).join(`(${publicPath})`)
+					// 直接替换裸占位符，兼容带样式的写法：![](local-image:id "w=60%")
+					mdToUpload = mdToUpload.split(placeholder).join(finalPath)
 
 					if (cover?.type === 'file' && cover.id === id) {
-						coverPath = publicPath
+						coverPath = finalPath
 					}
 				}
 			}

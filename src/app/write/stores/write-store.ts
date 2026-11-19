@@ -79,8 +79,8 @@ export const useWriteStore = create<WriteStore>((set, get) => ({
 	updateForm: updates => set(state => ({ form: { ...state.form, ...updates } })),
 	setForm: form => set({ form }),
 
-	// [新增] 默认打开就是 Markdown 源码模式；Ctrl+/ 或右上角按钮可以切回所见即所得
-	sourceMode: true,
+	// 默认所见即所得（Typora 风格），Ctrl+/ 或操作栏按钮可切换源码模式
+	sourceMode: false,
 	setSourceMode: value => set({ sourceMode: value }),
 	toggleSourceMode: () => set(state => ({ sourceMode: !state.sourceMode })),
 
@@ -227,9 +227,9 @@ export const useWriteStore = create<WriteStore>((set, get) => ({
 			set({ loading: true })
 			const blog = await loadBlog(slug)
 
-			// Parse images from markdown
+			// Parse images from markdown（只取 URL，忽略 `"w=60%"` 之类的样式 title）
 			const images: ImageItem[] = []
-			const imageRegex = /!\[.*?\]\((.*?)\)/g
+			const imageRegex = /!\[[^\]]*\]\(\s*(\S+?)(?:\s+["'][^"']*["'])?\s*\)/g
 			let match
 			while ((match = imageRegex.exec(blog.markdown)) !== null) {
 				const url = match[1]
@@ -312,8 +312,7 @@ export const useWriteStore = create<WriteStore>((set, get) => ({
 			images: [],
 			attachments: [],
 			cover: null,
-			// [新增] 新建文章默认回到 Markdown 源码模式
-			sourceMode: true
+			sourceMode: false
 		})
 	}
 }))

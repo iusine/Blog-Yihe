@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { useWriteStore } from '../../stores/write-store'
+import PicbedImage from '@/components/picbed-image'
 import Link from 'next/link'
 
 type ImagesSectionProps = {
@@ -79,7 +80,7 @@ export function ImagesSection({ delay = 0 }: ImagesSectionProps) {
 						<div
 							key={item.id}
 							className={`group relative aspect-square overflow-hidden rounded-lg border bg-white/10 text-xs ${isCover ? 'ring-2 ring-blue-500' : ''}`}>
-							<img
+							<PicbedImage
 								src={src}
 								className='h-full w-full object-cover'
 								draggable

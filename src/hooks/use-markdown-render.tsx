@@ -1,8 +1,6 @@
-import { useEffect, useState, type ReactElement, Fragment } from 'react'
-import parse, { type HTMLReactParserOptions, Element, type DOMNode } from 'html-react-parser'
-import { renderMarkdown, type TocItem } from '@/lib/markdown-renderer'
-import { MarkdownImage } from '@/components/markdown-image'
-import { CodeBlock } from '@/components/code-block'
+import { useEffect, useState, type ReactElement } from 'react'
+import { enhanceRenderedHtml } from '@/lib/enhance-html'
+import type { TocItem } from '@/lib/markdown-renderer'
 
 type MarkdownRenderResult = {
 	content: ReactElement | null
@@ -10,76 +8,30 @@ type MarkdownRenderResult = {
 	loading: boolean
 }
 
-export function useMarkdownRender(markdown: string): MarkdownRenderResult {
+/** 预览/编辑器用的即时渲染；文章页直接使用构建期渲染好的 HTML，不走这里。 */
+export function useMarkdownRender(markdown: string, enabled = true): MarkdownRenderResult {
 	const [content, setContent] = useState<ReactElement | null>(null)
 	const [toc, setToc] = useState<TocItem[]>([])
-	const [loading, setLoading] = useState<boolean>(true)
+	const [loading, setLoading] = useState<boolean>(enabled)
 
 	useEffect(() => {
+		if (!enabled) {
+			setContent(null)
+			setToc([])
+			setLoading(false)
+			return
+		}
+
 		let cancelled = false
 
 		async function render() {
 			setLoading(true)
 			try {
+				// 只有这里需要 marked / shiki / katex，动态加载让文章页不必下载它们
+				const { renderMarkdown } = await import('@/lib/markdown-renderer')
 				const { html, toc } = await renderMarkdown(markdown)
 				if (!cancelled) {
-					// Extract <pre data-code> blocks (single pre from shiki, not nested)
-					const codeBlocks: Array<{ placeholder: string; code: string; preHtml: string }> = []
-					let processedHtml = html.replace(/<pre\s+data-code="([^"]*)"([^>]*)>([\s\S]*?)<\/pre>/g, (_match, codeAttr, attrs, content) => {
-						const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
-						const code = codeAttr
-							.replace(/&quot;/g, '"')
-							.replace(/&#39;/g, "'")
-							.replace(/&lt;/g, '<')
-							.replace(/&gt;/g, '>')
-							.replace(/&amp;/g, '&')
-						codeBlocks.push({
-							placeholder,
-							code,
-							// Keep a full <pre> so styles still apply inside CodeBlock
-							preHtml: `<pre${attrs || ''}>${content}</pre>`
-						})
-						return placeholder
-					})
-
-					// Parse HTML and replace img elements and code block placeholders
-					const options: HTMLReactParserOptions = {
-						replace(domNode: DOMNode) {
-							if (domNode instanceof Element && domNode.name === 'img') {
-								const { src, alt, title } = domNode.attribs
-								return <MarkdownImage src={src} alt={alt} title={title} />
-							}
-							// Handle code block placeholders in text nodes
-							if (domNode.type === 'text' && domNode.data && domNode.data.includes('__CODE_BLOCK_')) {
-								const text = domNode.data
-								const result = text
-												.split(/(__CODE_BLOCK_\d+__)/)
-												.filter(Boolean);
-
-								return (
-									<>
-										{result.map((item, index) => {
-											if(item.startsWith('__CODE_BLOCK_')){
-												const block = codeBlocks.find(b => b.placeholder === item)
-												if(block){
-													const preElement = parse(block.preHtml) as ReactElement
-													return (
-														<CodeBlock key={block.placeholder} code={block.code}>{preElement}</CodeBlock>
-													)
-												}
-											}else{
-												return item
-													? <Fragment key={index}>{item}</Fragment>
-													: null
-											}
-										})}
-									</>
-								)
-							}
-						}
-					}
-					const reactContent = parse(processedHtml, options) as ReactElement
-					setContent(reactContent)
+					setContent(enhanceRenderedHtml(html))
 					setToc(toc)
 				}
 			} catch (error) {
@@ -89,9 +41,7 @@ export function useMarkdownRender(markdown: string): MarkdownRenderResult {
 					setToc([])
 				}
 			} finally {
-				if (!cancelled) {
-					setLoading(false)
-				}
+				if (!cancelled) setLoading(false)
 			}
 		}
 
@@ -100,7 +50,7 @@ export function useMarkdownRender(markdown: string): MarkdownRenderResult {
 		return () => {
 			cancelled = true
 		}
-	}, [markdown])
+	}, [markdown, enabled])
 
 	return { content, toc, loading }
 }

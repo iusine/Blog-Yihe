@@ -1,5 +1,7 @@
 import { commitFiles, addHashedImage, fileTreeItem } from '@/lib/github-commit'
 import type { TreeItem } from '@/lib/github-client'
+import { buildPicbedUrl, PICBED_CATEGORIES } from '@/lib/picbed'
+import { createPicbedBatch } from '@/lib/picbed-upload'
 import type { Share } from '../components/share-card'
 import type { MediaItem } from '@/components/media-upload-dialog'
 import { toast } from 'sonner'
@@ -31,6 +33,8 @@ export async function pushShares(params: PushSharesParams): Promise<Share[]> {
 		prepare: async ctx => {
 			const treeItems: TreeItem[] = []
 			const uploadedHashes = new Set<string>()
+			const batch = createPicbedBatch()
+			const pendingLogos: Array<{ key: string; localPath: string; cdnRepoPath?: string }> = []
 			let rows = [...shares]
 
 			if (logoItems && logoItems.size > 0) {
@@ -38,10 +42,19 @@ export async function pushShares(params: PushSharesParams): Promise<Share[]> {
 				for (const [key, logoItem] of logoItems.entries()) {
 					if (logoItem.type !== 'file') continue
 
-					const { publicPath, treeItem } = await addHashedImage(ctx, logoItem.file, 'images/share', uploadedHashes)
+					const { publicPath, treeItem, picbed } = await addHashedImage(ctx, logoItem.file, 'images/share', uploadedHashes, {
+						picbedCategory: PICBED_CATEGORIES.other
+					})
 					if (treeItem) treeItems.push(treeItem)
-					rows = rows.map(row => (row.__key === key ? { ...row, logo: publicPath } : row))
+					if (picbed) batch.add(picbed.repoPath, picbed.file)
+					pendingLogos.push({ key, localPath: publicPath, cdnRepoPath: picbed?.repoPath })
 				}
+			}
+
+			const picbedOk = await batch.flush(ctx.token)
+			for (const { key, localPath, cdnRepoPath } of pendingLogos) {
+				const logo = picbedOk && cdnRepoPath ? buildPicbedUrl(cdnRepoPath) : localPath
+				rows = rows.map(row => (row.__key === key ? { ...row, logo } : row))
 			}
 
 			const pending = rows.find(row => row.logo?.startsWith('blob:'))

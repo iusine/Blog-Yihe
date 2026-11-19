@@ -1,115 +1,27 @@
-'use client'
-
-import { useEffect, useMemo, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
 import dayjs from 'dayjs'
-import { motion } from 'motion/react'
-import { BlogPreview } from '@/components/blog-preview'
-import { loadBlog, type BlogConfig } from '@/lib/load-blog'
-import { useReadArticles } from '@/hooks/use-read-articles'
-import { useAuthStore } from '@/hooks/use-auth'
-import LiquidGrass from '@/components/liquid-grass'
+import { notFound } from 'next/navigation'
+import { listBlogSlugs, readBlog } from '@/lib/blog-store'
+import { renderMarkdown } from '@/lib/markdown-renderer'
+import { BlogArticle } from './blog-article'
 
-export default function Page() {
-	const params = useParams() as { id?: string | string[] }
-	const slug = Array.isArray(params?.id) ? params.id[0] : params?.id || ''
-	const router = useRouter()
-	const { markAsRead } = useReadArticles()
-	// [新增] 「隐藏此文章（仅管理员可见）」要在正文页也生效：
-	// 之前只有 /blog 列表会过滤 hidden，直接拿到 URL 还是能读到全文。
-	const { isAuth } = useAuthStore()
+type PageProps = {
+	params: Promise<{ id: string }>
+}
 
-	const [blog, setBlog] = useState<{ config: BlogConfig; markdown: string; cover?: string } | null>(null)
-	const [error, setError] = useState<string | null>(null)
-	const [loading, setLoading] = useState<boolean>(true)
+// 文章随代码一起部署，构建时预渲染成静态 HTML，首屏不需要再等客户端解析 markdown
+export async function generateStaticParams() {
+	const slugs = await listBlogSlugs()
+	return slugs.map(id => ({ id }))
+}
 
-	useEffect(() => {
-		let cancelled = false
-		async function run() {
-			if (!slug) return
-			try {
-				setLoading(true)
-				const blogData = await loadBlog(slug)
+export default async function Page({ params }: PageProps) {
+	const { id } = await params
+	const blog = await readBlog(id)
+	if (!blog) notFound()
 
-				if (!cancelled) {
-					setBlog(blogData)
-					setError(null)
-					markAsRead(slug)
-				}
-			} catch (e: any) {
-				if (!cancelled) setError(e?.message || '加载失败')
-			} finally {
-				if (!cancelled) setLoading(false)
-			}
-		}
-		run()
-		return () => {
-			cancelled = true
-		}
-	}, [slug, markAsRead])
+	const { html, toc } = await renderMarkdown(blog.markdown)
+	const title = blog.config.title || blog.slug
+	const date = blog.config.date ? dayjs(blog.config.date).format('YYYY年 M月 D日') : ''
 
-	const title = useMemo(() => (blog?.config.title ? blog.config.title : slug), [blog?.config.title, slug])
-	const date = useMemo(() => dayjs(blog?.config.date).format('YYYY年 M月 D日'), [blog?.config.date])
-	const tags = blog?.config.tags || []
-
-	// [修正] 原代码在渲染封面时直接使用了未声明的变量 origin，文章带封面时会抛 ReferenceError。
-	// 这里补上 origin 的定义：浏览器端取当前站点地址，SSR 阶段退回空串（相对路径）。
-	const origin = typeof window === 'undefined' ? '' : window.location.origin
-
-	const handleEdit = () => {
-		router.push(`/write/${slug}`)
-	}
-
-	if (!slug) {
-		return <div className='text-secondary flex h-full items-center justify-center text-sm'>无效的链接</div>
-	}
-
-	if (loading) {
-		return <div className='text-secondary flex h-full items-center justify-center text-sm'>加载中...</div>
-	}
-
-	if (error) {
-		return <div className='flex h-full items-center justify-center text-sm text-red-500'>{error}</div>
-	}
-
-	if (!blog) {
-		return <div className='text-secondary flex h-full items-center justify-center text-sm'>文章不存在</div>
-	}
-
-	// [新增] 隐藏文章只给管理员看：未导入私钥时，即使拿到直链也不显示正文
-	if (blog.config.hidden && !isAuth) {
-		return (
-			<div className='flex h-full flex-col items-center justify-center gap-2 px-6 text-center'>
-				<div className='text-3xl'>🔒</div>
-				<div className='text-secondary text-sm'>这篇文章被作者设为隐藏，仅管理员可见</div>
-			</div>
-		)
-	}
-
-	return (
-		<>
-			<BlogPreview
-				markdown={blog.markdown}
-				title={title}
-				tags={tags}
-				date={date}
-				summary={blog.config.summary}
-				cover={blog.cover ? (blog.cover.startsWith('http') ? blog.cover : `${origin}${blog.cover}`) : undefined}
-				slug={slug}
-				attachments={blog.config.attachments}
-			/>
-
-			{isAuth && <motion.button
-				initial={{ opacity: 0, scale: 0.6 }}
-				animate={{ opacity: 1, scale: 1 }}
-				whileHover={{ scale: 1.05 }}
-				whileTap={{ scale: 0.95 }}
-				onClick={handleEdit}
-				className='absolute top-4 right-6 rounded-xl border bg-white/10 px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:hidden'>
-				编辑
-			</motion.button>}
-
-			{slug === 'liquid-grass' && <LiquidGrass />}
-		</>
-	)
+	return <BlogArticle slug={blog.slug} title={title} date={date} config={blog.config} html={html} toc={toc} />
 }

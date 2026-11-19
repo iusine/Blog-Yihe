@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Plus } from 'lucide-react'
 import AvatarUploadDialog, { type AvatarItem } from './avatar-upload-dialog'
+import PicbedImage from '@/components/picbed-image'
 import { DialogModal } from '@/components/dialog-modal'
 
 interface Blogger {
@@ -71,7 +72,7 @@ export default function CreateDialog({ blogger, onClose, onSave }: CreateDialogP
 					<div className='group relative cursor-pointer' onClick={() => setShowAvatarDialog(true)}>
 						{formData.avatar ? (
 							<>
-								<img src={formData.avatar} alt={formData.name} className='h-16 w-16 rounded-full object-cover' />
+								<PicbedImage src={formData.avatar} alt={formData.name} className='h-16 w-16 rounded-full object-cover' />
 								<div className='pointer-events-none absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
 									<span className='text-xs text-white'>更换</span>
 								</div>

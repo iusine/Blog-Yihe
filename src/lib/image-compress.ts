@@ -15,8 +15,14 @@
 /** 默认上限：1MB */
 export const MAX_UPLOAD_IMAGE_BYTES = 1024 * 1024
 
+/** 图床副本上限：5MB（只有原图超过 5MB 才压缩） */
+export const MAX_PICBED_IMAGE_BYTES = 5 * 1024 * 1024
+
 /** 长边上限，超过就等比缩小 */
 const MAX_EDGE = 2560
+
+/** 图床副本保留更多细节，长边放宽到 4096 */
+const PICBED_MAX_EDGE = 4096
 
 /** 可以重新编码的位图格式 */
 const COMPRESSIBLE = /^image\/(jpe?g|pjpeg|png|webp|avif|bmp)$/i
@@ -88,7 +94,11 @@ function wrap(file: File, blob: Blob, mime: string, originalSize: number): Compr
 /**
  * 把图片压到 `maxBytes` 以内。已经足够小、或者格式不适合重新编码时原样返回。
  */
-export async function compressImageFile(file: File, maxBytes: number = MAX_UPLOAD_IMAGE_BYTES): Promise<CompressImageResult> {
+export async function compressImageFile(
+	file: File,
+	maxBytes: number = MAX_UPLOAD_IMAGE_BYTES,
+	options: { maxEdge?: number } = {}
+): Promise<CompressImageResult> {
 	const originalSize = file.size
 	const unchanged: CompressImageResult = { file, originalSize, size: originalSize, compressed: false }
 
@@ -96,6 +106,7 @@ export async function compressImageFile(file: File, maxBytes: number = MAX_UPLOA
 	if (!COMPRESSIBLE.test(file.type)) return unchanged
 
 	const mime = KEEP_ALPHA.test(file.type) ? 'image/webp' : 'image/jpeg'
+	const maxEdge = options.maxEdge ?? MAX_EDGE
 
 	let decoded: Decoded
 	try {
@@ -106,7 +117,7 @@ export async function compressImageFile(file: File, maxBytes: number = MAX_UPLOA
 	}
 
 	try {
-		const fitScale = Math.min(1, MAX_EDGE / Math.max(decoded.width, decoded.height))
+		const fitScale = Math.min(1, maxEdge / Math.max(decoded.width, decoded.height))
 		let scale = fitScale
 		let quality = 0.86
 		let best: { blob: Blob; mime: string } | null = null
@@ -152,4 +163,9 @@ export async function compressImageFile(file: File, maxBytes: number = MAX_UPLOA
 	} finally {
 		decoded.release()
 	}
+}
+
+/** 图床副本：原图超过 5MB 才压缩，压到 5MB 以内 */
+export function compressImageForPicbed(file: File): Promise<CompressImageResult> {
+	return compressImageFile(file, MAX_PICBED_IMAGE_BYTES, { maxEdge: PICBED_MAX_EDGE })
 }

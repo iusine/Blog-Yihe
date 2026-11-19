@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import Link from 'next/link'
+import PicbedImage from '@/components/picbed-image'
 import { cn } from '@/lib/utils'
 import { useSize } from '@/hooks/use-size'
 import ImageUploadDialog, { type ImageItem } from './image-upload-dialog'
@@ -101,7 +102,7 @@ export function ProjectCard({ project, isEditMode = false, onUpdate, onDelete }:
 
 			<div className='flex items-start gap-4'>
 				<div className='group relative'>
-					<img
+					<PicbedImage
 						src={localProject.image}
 						alt={localProject.name}
 						loading='lazy'

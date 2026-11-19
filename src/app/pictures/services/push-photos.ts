@@ -1,5 +1,7 @@
 import { addHashedImage, commitFiles, fileTreeItem } from '@/lib/github-commit'
 import type { TreeItem } from '@/lib/github-client'
+import { buildPicbedUrl, PICBED_CATEGORIES } from '@/lib/picbed'
+import { createPicbedBatch } from '@/lib/picbed-upload'
 import type { CityRef, NewPhotoDraft, Photo, PhotoPatch } from '../types'
 import { toast } from 'sonner'
 
@@ -33,16 +35,26 @@ export async function pushPhotos(params: PushPhotosParams): Promise<Photo[]> {
 			const uploadedHashes = new Set<string>()
 			const treeItems: TreeItem[] = []
 			const created: Photo[] = []
+			const batch = createPicbedBatch()
+			const pending: Array<{ draft: NewPhotoDraft; localPath: string; cdnRepoPath?: string }> = []
 
 			toast.info(`正在上传 ${drafts.length} 张照片...`)
 
 			for (const draft of drafts) {
-				const { publicPath, treeItem } = await addHashedImage(ctx, draft.file, 'images/pictures', uploadedHashes)
+				const { publicPath, treeItem, picbed } = await addHashedImage(ctx, draft.file, 'images/pictures', uploadedHashes, {
+					picbedCategory: PICBED_CATEGORIES.photos
+				})
 				if (treeItem) treeItems.push(treeItem)
+				if (picbed) batch.add(picbed.repoPath, picbed.file)
+				pending.push({ draft, localPath: publicPath, cdnRepoPath: picbed?.repoPath })
+			}
 
+			const picbedOk = await batch.flush(ctx.token)
+
+			for (const { draft, localPath, cdnRepoPath } of pending) {
 				created.push({
 					id: createId(),
-					src: publicPath,
+					src: picbedOk && cdnRepoPath ? buildPicbedUrl(cdnRepoPath) : localPath,
 					title: draft.title.trim() || '未命名照片',
 					description: draft.description.trim() || undefined,
 					tags: draft.tags.length > 0 ? draft.tags : undefined,

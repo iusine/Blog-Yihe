@@ -28,10 +28,12 @@ export default function Layout({ children }: PropsWithChildren) {
 
     return (
         <>
+            {/* 手机端底部有固定的写作操作条，提示整体上移避免遮挡 */}
             <Toaster
                 position='bottom-right'
                 theme='dark'
                 richColors
+                mobileOffset={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
                 icons={{
                     success: <CircleCheckIcon className='size-4' />,
                     info: <InfoIcon className='size-4' />,

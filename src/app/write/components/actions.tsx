@@ -89,7 +89,8 @@ export function WriteActions() {
 			/>
 			<input ref={mdInputRef} type='file' accept='.md' className='hidden' onChange={handleMdFileChange} />
 
-			<ul className='absolute top-4 right-6 flex max-w-[calc(100vw-3rem)] flex-wrap items-center justify-end gap-2 max-sm:inset-x-3 max-sm:top-24 max-sm:max-w-none max-sm:justify-center max-sm:gap-1.5'>
+			{/* 手机上改成底部固定操作条：拇指可及，写正文时不用滚回顶部 */}
+			<ul className='absolute top-4 right-6 flex max-w-[calc(100vw-3rem)] flex-wrap items-center justify-end gap-2 max-sm:fixed max-sm:inset-x-0 max-sm:top-auto max-sm:bottom-0 max-sm:z-40 max-sm:max-w-none max-sm:flex-nowrap max-sm:items-center max-sm:justify-start max-sm:gap-1.5 max-sm:overflow-x-auto max-sm:scrollbar-none max-sm:border-t max-sm:bg-card max-sm:px-3 max-sm:pt-2 max-sm:pb-[calc(0.5rem+env(safe-area-inset-bottom))] max-sm:backdrop-blur-xl max-sm:[&>*]:shrink-0'>
 				{mode === 'edit' && (
 					<>
 						<motion.div initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} className='flex items-center gap-2'>

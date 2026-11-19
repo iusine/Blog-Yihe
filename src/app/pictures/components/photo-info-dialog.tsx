@@ -2,6 +2,7 @@
 
 import { Pencil } from 'lucide-react'
 import { DialogModal } from '@/components/dialog-modal'
+import PicbedImage from '@/components/picbed-image'
 import type { Photo } from '../types'
 
 type Props = {
@@ -17,7 +18,7 @@ export default function PhotoInfoDialog({ photo, cityName, onClose, onEdit }: Pr
 		<DialogModal open onClose={onClose} className='card w-[min(960px,94vw)] overflow-hidden p-0'>
 			<div className='flex max-h-[88vh] flex-col md:flex-row'>
 				<div className='flex min-h-[240px] flex-1 items-center justify-center bg-black/5 md:max-h-[88vh]'>
-					<img src={photo.src} alt={photo.title} className='max-h-[45vh] w-full object-contain md:max-h-[88vh]' />
+					<PicbedImage src={photo.src} alt={photo.title} className='max-h-[45vh] w-full object-contain md:max-h-[88vh]' />
 				</div>
 
 				<div className='w-full shrink-0 overflow-y-auto p-6 md:w-[320px]'>

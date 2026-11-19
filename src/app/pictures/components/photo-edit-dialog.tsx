@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { DialogModal } from '@/components/dialog-modal'
+import PicbedImage from '@/components/picbed-image'
 import type { Photo, PhotoPatch } from '../types'
 
 type Props = {
@@ -59,7 +60,7 @@ export default function PhotoEditDialog({ photo, cityName, onClose, onSave }: Pr
 				</div>
 			</div>
 
-			<img src={photo.src} alt={title} className='mb-4 max-h-[180px] w-full rounded-xl bg-black/5 object-contain' />
+			<PicbedImage src={photo.src} alt={title} className='mb-4 max-h-[180px] w-full rounded-xl bg-black/5 object-contain' />
 
 			<div className='space-y-2.5'>
 				<label className='block'>

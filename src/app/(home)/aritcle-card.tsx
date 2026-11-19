@@ -1,5 +1,6 @@
 /* 首图和文章入口。 */
 import Card from '@/components/card'
+import PicbedImage from '@/components/picbed-image'
 import { useCenterStore } from '@/hooks/use-center'
 import { useLatestBlog } from '@/hooks/use-blog-index'
 import { useConfigStore } from './stores/config-store'
@@ -46,7 +47,7 @@ export default function ArticleCard() {
                 ) : blog ? (
                     <Link href={`/blog/${blog.slug}`} className='flex min-w-0 transition-opacity hover:opacity-80'>
                         {blog.cover ? (
-                            <img src={blog.cover} alt='cover' className='mr-3 h-12 w-12 shrink-0 rounded-xl border object-cover' />
+                            <PicbedImage src={blog.cover} alt='cover' className='mr-3 h-12 w-12 shrink-0 rounded-xl border object-cover' />
                         ) : (
                             <div className='text-secondary mr-3 grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white/10'>+</div>
                         )}

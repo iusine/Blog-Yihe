@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'motion/react'
+import PicbedImage from '@/components/picbed-image'
 import StarRating from '@/components/star-rating'
 import { useSize } from '@/hooks/use-size'
 import { cn } from '@/lib/utils'
@@ -78,7 +79,7 @@ export function BloggerCard({ blogger, isEditMode = false, onUpdate, onDelete }:
 			<div>
 				<div className='mb-4 flex items-center gap-4'>
 					<div className='group relative'>
-						<img
+						<PicbedImage
 							src={localBlogger.avatar}
 							alt={localBlogger.name}
 							loading='lazy'

@@ -213,6 +213,13 @@
 	outline: none;
 }
 
+/* 编辑器内图片宽度由 NodeView 外层框控制，覆盖 article.css 里的 40% 限制与段距，
+   否则选中/拖拽框会比图片本身大出一圈 */
+.tiptap-editor.prose img {
+	max-width: 100%;
+	margin: 0;
+}
+
 .tiptap-editor.prose h1 {
 	text-align: center;
 }

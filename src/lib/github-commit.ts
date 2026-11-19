@@ -14,7 +14,13 @@ import {
 	type TreeItem
 } from '@/lib/github-client'
 import { fileToBase64NoPrefix, hashFileSHA256 } from '@/lib/file-utils'
-import { compressImageFile, MAX_UPLOAD_IMAGE_BYTES } from '@/lib/image-compress'
+import {
+	compressImageFile,
+	compressImageForPicbed,
+	MAX_PICBED_IMAGE_BYTES,
+	MAX_UPLOAD_IMAGE_BYTES
+} from '@/lib/image-compress'
+import { buildPicbedRepoPath, type PicbedCategory } from '@/lib/picbed'
 import { formatBytes, getFileExt, getFilenameExtension } from '@/lib/utils'
 import { syncLocalRepo } from '@/lib/dev-sync'
 
@@ -177,17 +183,31 @@ export async function addHashedFile(
 	}
 }
 
+export type HashedImageResult = {
+	publicPath: string
+	treeItem: TreeItem | null
+	hash: string
+	/** 需要另外提交到 Image-bed 的副本（未上传，由调用方合并成一次提交） */
+	picbed?: { repoPath: string; file: File }
+}
+
 /**
- * 上传图片前先压缩：超过 1MB 的压到 1MB 以内（见 lib/image-compress.ts），
- * 然后按压缩后的字节算 hash、上传，保证仓库里不会出现几十 MB 的原图。
+ * 准备一张图片：
+ * - 本地副本：超过 1MB 压到 1MB 以内（见 lib/image-compress.ts）；
+ * - 图床副本：超过 5MB 才压到 5MB 以内，否则保留原图；
+ * - 两份副本用「原图 hash + 扩展名」命名，方便渲染时从图床地址推导出本地地址。
  */
 export async function addHashedImage(
 	ctx: CommitContext,
 	file: File,
 	publicDir: string,
-	uploadedHashes: Set<string>
-): Promise<{ publicPath: string; treeItem: TreeItem | null; hash: string }> {
+	uploadedHashes: Set<string>,
+	options: { picbedCategory?: PicbedCategory } = {}
+): Promise<HashedImageResult> {
+	const hash = await hashFileSHA256(file)
+	const originalExt = getFilenameExtension(file.name) || getFileExt(file.name)
 	let source = file
+
 	try {
 		const oversized = file.size > MAX_UPLOAD_IMAGE_BYTES
 		if (oversized) toast.info(`正在压缩图片（${formatBytes(file.size)}）…`, { id: 'image-compress' })
@@ -208,5 +228,53 @@ export async function addHashedImage(
 		console.error('Failed to compress image:', error)
 	}
 
-	return addHashedFile(ctx, source, publicDir, uploadedHashes)
+	const dir = publicDir.replace(/^\/+|\/+$/g, '')
+	const localExt = getFilenameExtension(source.name) || originalExt
+	const publicPath = `/${dir}/${hash}${localExt}`
+	const repoPath = `public/${dir}/${hash}${localExt}`
+
+	// 去重键带上扩展名：同名内容的不同格式不会互相覆盖
+	const uploadKey = `${hash}${localExt}`
+	let treeItem: TreeItem | null = null
+	if (!uploadedHashes.has(uploadKey)) {
+		const contentBase64 = await fileToBase64NoPrefix(source)
+		const sha = await ctx.blobFromBase64(contentBase64)
+		uploadedHashes.add(uploadKey)
+		treeItem = fileTreeItem(repoPath, sha)
+	}
+
+	let picbed: HashedImageResult['picbed']
+	if (options.picbedCategory) {
+		let cdnSource = file
+
+		if (file.size > MAX_PICBED_IMAGE_BYTES) {
+			toast.info(`图床原图超过 5MB，正在压缩（${formatBytes(file.size)}）…`, { id: 'picbed-compress' })
+			try {
+				const result = await compressImageForPicbed(file)
+				cdnSource = result.file
+
+				if (result.compressed) {
+					toast.success(`图床副本已压缩：${formatBytes(result.originalSize)} → ${formatBytes(result.size)}`, {
+						id: 'picbed-compress'
+					})
+				} else {
+					toast.info('这张图片无法进一步压缩，图床副本将按原样上传', { id: 'picbed-compress' })
+				}
+
+				if (result.compressed && result.size > MAX_PICBED_IMAGE_BYTES) {
+					toast.warning(`图床副本压到 ${formatBytes(result.size)} 仍超过 5MB，已按最佳效果上传`)
+				}
+			} catch (error) {
+				console.error('Failed to compress image for picbed:', error)
+			}
+		}
+
+		const cdnExt = getFilenameExtension(cdnSource.name) || originalExt
+		picbed = {
+			repoPath: buildPicbedRepoPath(options.picbedCategory, dir, `${hash}${cdnExt}`),
+			file: cdnSource
+		}
+	}
+
+	return { publicPath, treeItem, hash, picbed }
 }

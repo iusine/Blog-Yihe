@@ -22,7 +22,7 @@ export default function WritePage() {
 		<WritePreview form={form} coverPreviewUrl={coverPreviewUrl} onClose={closePreview} />
 	) : (
 		<>
-			<div className='flex h-full justify-center gap-6 px-6 pt-24 pb-12 max-lg:flex-col max-lg:items-center max-sm:px-3 max-sm:pt-44'>
+			<div className='flex h-full justify-center gap-6 px-6 pt-24 pb-12 max-lg:flex-col max-lg:items-center max-sm:px-3 max-sm:pt-24 max-sm:pb-24'>
 				<WriteEditor />
 				<WriteSidebar />
 			</div>

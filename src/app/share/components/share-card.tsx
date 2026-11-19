@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { motion } from 'motion/react'
+import PicbedImage from '@/components/picbed-image'
 import StarRating from '@/components/star-rating'
 import { useSize } from '@/hooks/use-size'
 import { cn } from '@/lib/utils'
@@ -111,7 +112,7 @@ export function ShareCard({ share, isEditMode = false, onUpdate, onDelete }: Sha
 			<div>
 				<div className='mb-4 flex items-center gap-4'>
 					<div className='group relative'>
-						<img
+						<PicbedImage
 							src={localShare.logo}
 							alt={localShare.name}
 							className={cn('h-16 w-16 rounded-xl object-cover', canEdit && 'cursor-pointer')}

@@ -5,14 +5,14 @@ import { toast } from 'sonner'
 import { Mail, Lock, UserX } from 'lucide-react'
 import { DialogModal } from '@/components/dialog-modal'
 import { encryptForOwner } from '../lib/crypto'
-import { buildMailBody, contentLimit, OWNER_EMAIL, type MessageDraft } from '../types'
+import { buildMailBody, contentLimit, OWNER_EMAIL, type Message, type MessageDraft } from '../types'
 
 type Props = {
 	onClose: () => void
 	isOwner: boolean
 	/** 站主公钥（没有就无法使用「代发」和「仅站主」两个功能） */
 	ownerPublicKey: string | null
-	onSubmitted: (result: { ok: boolean; fallback?: boolean }) => void
+	onSubmitted: (result: { ok: boolean; fallback?: boolean; message?: Message }) => void
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -121,7 +121,8 @@ export default function ComposeDialog({ onClose, ownerPublicKey, isOwner, onSubm
 			}
 
 			toast.success(sendToOther ? '留言已提交，一禾会帮你代发邮件' : '留言成功，谢谢你的足迹～')
-			onSubmitted({ ok: true })
+			const message = data?.message && typeof data.message.id === 'string' ? (data.message as Message) : undefined
+			onSubmitted({ ok: true, message })
 			onClose()
 		} catch (error: any) {
 			console.error('Failed to submit message:', error)

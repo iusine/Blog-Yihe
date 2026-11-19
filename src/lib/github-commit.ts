@@ -36,6 +36,8 @@ export type CommitFilesOptions<T = void> = {
 	successMessage?: string
 	/** 本地同步成功后是否额外提示一句（发布文章时开启） */
 	notifyLocalSync?: boolean
+	/** 目标分支，默认 GITHUB_CONFIG.BRANCH；留言/随笔数据走 `data` 分支避开生产部署 */
+	branch?: string
 	prepare: (ctx: CommitContext) => Promise<{ treeItems: TreeItem[]; result?: T }>
 }
 
@@ -69,8 +71,9 @@ async function resolveBranchHead(token: string, owner: string, repo: string, bra
  * getAuthToken → getRef → prepare tree → createTree → createCommit → updateRef
  */
 export async function commitFiles<T = void>(options: CommitFilesOptions<T>): Promise<T> {
-	const { message, successMessage = '发布成功！', notifyLocalSync = false, prepare } = options
-	const { OWNER: owner, REPO: repo, BRANCH: branch } = GITHUB_CONFIG
+	const { message, successMessage = '发布成功！', notifyLocalSync = false, branch: targetBranch, prepare } = options
+	const { OWNER: owner, REPO: repo } = GITHUB_CONFIG
+	const branch = targetBranch || GITHUB_CONFIG.BRANCH
 
 	const token = await getAuthToken()
 

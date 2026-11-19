@@ -29,7 +29,6 @@ export type WallItem = {
 
 type Props = {
 	items: WallItem[]
-	loading?: boolean
 	onOpen: (item: WallItem) => void
 }
 
@@ -38,7 +37,7 @@ const clampPercent = (value: number, inset: number) => Math.min(100 - inset, Mat
 /**
  * 留言墙本体：卡片按 id 哈希散落、彼此轻微堆叠，可以拖动重新摆放。
  */
-export default function MessageWall({ items, loading = false, onOpen }: Props) {
+export default function MessageWall({ items, onOpen }: Props) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const dragRef = useRef<{ id: string; startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(null)
 	const zRef = useRef(100)
@@ -140,18 +139,13 @@ export default function MessageWall({ items, loading = false, onOpen }: Props) {
 			onPointerMove={handlePointerMove}
 			onPointerUp={handlePointerUp}
 			onPointerLeave={handlePointerUp}>
-			{items.length === 0 &&
-				(loading ? (
-					<div className='flex h-full items-center justify-center'>
-						<p className='text-secondary animate-pulse text-sm'>正在加载留言…</p>
-					</div>
-				) : (
-					<div className='flex h-full flex-col items-center justify-center gap-3 text-center'>
-						<div className='text-5xl'>📮</div>
-						<p className='text-lg font-medium text-white'>留言墙还是空的</p>
-						<p className='text-secondary max-w-xs text-xs leading-relaxed'>点右下角的「写留言」，留下你的第一条足迹吧。</p>
-					</div>
-				))}
+			{items.length === 0 && (
+				<div className='flex h-full flex-col items-center justify-center gap-3 text-center'>
+					<div className='text-5xl'>📮</div>
+					<p className='text-lg font-medium text-white'>留言墙还是空的</p>
+					<p className='text-secondary max-w-xs text-xs leading-relaxed'>点右下角的「写留言」，留下你的第一条足迹吧。</p>
+				</div>
+			)}
 
 			{items.map(item => {
 				const position = positions[item.id] ?? base.get(item.id)

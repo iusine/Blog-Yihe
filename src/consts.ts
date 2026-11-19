@@ -15,6 +15,8 @@ export const GITHUB_CONFIG = {
     OWNER: process.env.NEXT_PUBLIC_GITHUB_OWNER || 'iusine',
     REPO: process.env.NEXT_PUBLIC_GITHUB_REPO || 'Blog-Yihe',
     BRANCH: process.env.NEXT_PUBLIC_GITHUB_BRANCH || 'main',
+    /** 留言、随笔等动态数据放在这个分支，写入不会触发生产部署 */
+    DATA_BRANCH: process.env.NEXT_PUBLIC_GITHUB_DATA_BRANCH || 'data',
     APP_ID: process.env.NEXT_PUBLIC_GITHUB_APP_ID || '5776856',
     ENCRYPT_KEY: process.env.NEXT_PUBLIC_GITHUB_ENCRYPT_KEY || '',
 } as const

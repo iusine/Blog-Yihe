@@ -1,8 +1,6 @@
-/* 服务端网易云代理：用 .env.local 里的 NETEASE_COOKIE（自己的 VIP 账号）取歌单/完整音频/歌词。
- * 对前端暴露成 Meting 的 query 协议，前端无需感知 Cookie。
- * 部署到生产环境后默认开启访问口令（MUSIC_ACCESS_TOKEN），只允许站主自己播放。 */
+/* 服务端网易云代理：用环境变量里的 NETEASE_COOKIE 取歌单/完整音频/歌词。
+ * 本站访客均可播放；生产环境校验浏览器同源请求，阻止外站嵌入和直接调用 API。 */
 import type { NextRequest } from 'next/server'
-import { accessCookieHeader, authorizedToken, privateEnabled } from './access'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -91,19 +89,32 @@ async function resolveAudioUrl(id: string) {
 	return httpsUrl(legacy.data?.[0]?.url)
 }
 
-export async function GET(request: NextRequest) {
-	// 私密模式：只认 /api/music/auth 种下的口令 Cookie，访客拿不到任何歌单/音源
-	const privateMode = privateEnabled()
-	const secret = process.env.MUSIC_ACCESS_TOKEN?.trim()
-	if (privateMode && !secret) return Response.json({ error: '服务器未配置 MUSIC_ACCESS_TOKEN' }, { status: 503 })
-	const authorized = privateMode && secret ? authorizedToken(request) : null
-	if (privateMode && !authorized) return Response.json({ error: '音乐服务仅站主可用' }, { status: 403 })
+/** 只接受本站页面发起的浏览器请求；本地开发保持开放，方便调试。 */
+function isWebsiteRequest(request: NextRequest) {
+	if (process.env.NODE_ENV !== 'production') return true
 
-	// 每次通过校验都顺便续期，常用站点不会因 400 天到期而失效
-	const renew = authorized ? accessCookieHeader(authorized) : null
-	const withRenew = (response: Response) => {
-		if (renew) response.headers.set('Set-Cookie', renew)
-		return response
+	const fetchSite = request.headers.get('sec-fetch-site')
+	if (fetchSite === 'cross-site') return false
+
+	const expectedHost = request.nextUrl.host
+	const origin = request.headers.get('origin')
+	const referer = request.headers.get('referer')
+
+	try {
+		if (origin && new URL(origin).host !== expectedHost) return false
+		if (referer && new URL(referer).host !== expectedHost) return false
+	} catch {
+		return false
+	}
+
+	// 现代浏览器的同源 fetch/audio 会带 Sec-Fetch-Site；
+	// 旧浏览器则用同源 Origin 或 Referer 判断。直接输入 API 地址时三者通常都不满足。
+	return fetchSite === 'same-origin' || Boolean(origin || referer)
+}
+
+export async function GET(request: NextRequest) {
+	if (!isWebsiteRequest(request)) {
+		return Response.json({ error: '请通过本站页面使用音乐服务' }, { status: 403 })
 	}
 
 	if (!process.env.NETEASE_COOKIE?.trim()) {
@@ -117,7 +128,7 @@ export async function GET(request: NextRequest) {
 	try {
 		if (type === 'playlist') {
 			if (!/^\d+$/.test(id)) return Response.json({ error: '歌单 id 不合法' }, { status: 400 })
-			return withRenew(Response.json(await getPlaylist(id), { headers: { 'Cache-Control': 'no-store' } }))
+			return Response.json(await getPlaylist(id), { headers: { 'Cache-Control': 'no-store' } })
 		}
 
 		if (!/^\d+$/.test(id)) return Response.json({ error: '歌曲 id 不合法' }, { status: 400 })
@@ -125,16 +136,14 @@ export async function GET(request: NextRequest) {
 		if (type === 'url') {
 			const url = await resolveAudioUrl(id)
 			if (!url) return Response.json({ error: '这首歌没有可用音源（可能已下架或需要更高会员）' }, { status: 404 })
-			return withRenew(new Response(null, { status: 302, headers: { Location: url, 'Cache-Control': 'no-store' } }))
+			return new Response(null, { status: 302, headers: { Location: url, 'Cache-Control': 'no-store' } })
 		}
 
 		if (type === 'lrc') {
 			const result = await netease<{ lrc?: { lyric?: string } }>(`/api/song/lyric?id=${id}&lv=1&kv=1&tv=-1`)
-			return withRenew(
-				new Response(result.lrc?.lyric ?? '', {
-					headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }
-				})
-			)
+			return new Response(result.lrc?.lyric ?? '', {
+				headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }
+			})
 		}
 
 		return Response.json({ error: `不支持的类型：${type}` }, { status: 400 })

@@ -41,7 +41,7 @@ export function ScrollTopButton({ className, delay }: ScrollTopButtonProps) {
             whileTap={{ scale: 0.95 }}
             onClick={handleClick}
             aria-label='Scroll to top'
-            className={cn('card text-brand static gap-2 rounded-full p-3 text-sm', className)}>
+            className={cn('scroll-top-button card text-brand static gap-2 rounded-full p-3 text-sm', className)}>
             <ArrowUpToLine className='h-5 w-5' strokeWidth={2.2} />
         </motion.button>
     )

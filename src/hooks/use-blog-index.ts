@@ -6,8 +6,10 @@ import type { BlogIndexItem } from '@/app/blog/types'
 export type { BlogIndexItem } from '@/app/blog/types'
 
 // 改进 fetcher，抛出状态码以便处理 404
+// [修改] 不再强制 no-store：让浏览器 HTTP 缓存参与，配合 head 里的 preload，
+// 首屏那次请求不必重新建连；SWR 仍然负责刷新，数据更新的时效不变。
 const fetcher = async (url: string) => {
-	const res = await fetch(url, { cache: 'no-store' })
+	const res = await fetch(url)
 	if (!res.ok) {
 		const error: any = new Error('Fetch failed')
 		error.status = res.status

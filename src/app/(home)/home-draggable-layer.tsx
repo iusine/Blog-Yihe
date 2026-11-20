@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useCallback } from 'react'
-import { useCenterStore } from '@/hooks/use-center'
 import { useLayoutEditStore } from './stores/layout-edit-store'
 import type { CardStyles } from './stores/config-store'
 import DraggerSVG from '@/svgs/dragger.svg'
@@ -10,8 +9,12 @@ type CardKey = keyof CardStyles
 
 interface HomeDraggableLayerProps {
 	cardKey: CardKey
-	x: number
-	y: number
+	/** 卡片当前位置（CSS 表达式，和服务端渲染的完全一致） */
+	left: string
+	top: string
+	/** 相对屏幕中心的偏移，拖拽时作为起点 */
+	offsetX: number
+	offsetY: number
 	width?: number
 	height?: number
 	children: React.ReactNode
@@ -33,11 +36,10 @@ interface ResizeState {
 	initialHeight: number
 }
 
-export function HomeDraggableLayer({ cardKey, x, y, width, height, children }: HomeDraggableLayerProps) {
+export function HomeDraggableLayer({ cardKey, left, top, offsetX, offsetY, width, height, children }: HomeDraggableLayerProps) {
 	const editing = useLayoutEditStore(state => state.editing)
 	const setOffset = useLayoutEditStore(state => state.setOffset)
 	const setSize = useLayoutEditStore(state => state.setSize)
-	const center = useCenterStore()
 	const dragStateRef = useRef<DragState>({
 		dragging: false,
 		startX: 0,
@@ -180,15 +182,12 @@ export function HomeDraggableLayer({ cardKey, x, y, width, height, children }: H
 		(clientX: number, clientY: number) => {
 			if (!editing) return
 
-			const initialOffsetX = x - center.x
-			const initialOffsetY = y - center.y
-
 			dragStateRef.current = {
 				dragging: true,
 				startX: clientX,
 				startY: clientY,
-				initialOffsetX,
-				initialOffsetY
+				initialOffsetX: offsetX,
+				initialOffsetY: offsetY
 			}
 
 			window.addEventListener('mousemove', handleMouseMove)
@@ -197,7 +196,7 @@ export function HomeDraggableLayer({ cardKey, x, y, width, height, children }: H
 			window.addEventListener('touchend', handleEnd)
 			window.addEventListener('touchcancel', handleEnd)
 		},
-		[editing, x, y, center.x, center.y, handleMouseMove, handleEnd, handleTouchMove]
+		[editing, offsetX, offsetY, handleMouseMove, handleEnd, handleTouchMove]
 	)
 
 	const handleMouseDown: React.MouseEventHandler<HTMLDivElement> = event => {
@@ -218,7 +217,7 @@ export function HomeDraggableLayer({ cardKey, x, y, width, height, children }: H
 			{editing && (
 				<div
 					className='border-brand/70 bg-brand/5 pointer-events-auto absolute z-40 cursor-move rounded-2xl border border-dashed'
-					style={{ left: x, top: y, width, height }}
+					style={{ left, top, width, height }}
 					onMouseDown={handleMouseDown}
 					onTouchStart={handleTouchStart}>
 					<div className='pointer-events-none h-full w-full' />

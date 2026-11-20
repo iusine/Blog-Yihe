@@ -128,6 +128,47 @@
 	}
 }
 
+/* [新增] 卡片入场：改成 CSS 动画，HTML 解析到就开始，不必等 JS 水合。
+ * backwards 只在前面的延迟期间生效，动画结束后不再占用 transform，
+ * 这样 motion 的 hover 缩放还能正常接管。 */
+@keyframes card-in {
+	0% {
+		opacity: 0;
+		transform: scale(0.6);
+	}
+	70% {
+		opacity: 1;
+		transform: scale(1.02);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@utility card-enter {
+	animation: card-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+	animation-delay: var(--card-delay, 0ms);
+}
+
+/* 手机端卡片是纵向排列，不需要错峰等待（原来 order 在手机端会被归零） */
+@media (max-width: 639px) {
+	.card-enter {
+		animation-delay: 0ms !important;
+	}
+}
+
+/* 手机端的导航卡：宽度按 min(340, 100%-32) 收缩，并保持顶部居中。
+ * 这段放在 CSS 里，服务端不用知道视口宽度也能摆对位置。 */
+@media (max-width: 639px) {
+	.nav-card-mobile {
+		left: max(16px, calc(50% - 170px)) !important;
+		top: 16px !important;
+		width: min(340px, calc(100% - 32px)) !important;
+		height: 64px !important;
+	}
+}
+
 @utility card-rounded {
 	@apply rounded-3xl;
 	@supports (corner-shape: squircle) {
@@ -172,6 +213,28 @@
 	}
 
 	-moz-appearance: textfield;
+}
+
+/* [新增] 音乐页：唱片旋转与播放中的跳动条 */
+@keyframes vinyl-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes eq-bounce {
+	0%,
+	100% {
+		transform: scaleY(0.4);
+	}
+	50% {
+		transform: scaleY(1);
+	}
+}
+
+.eq-bar {
+	transform-origin: bottom;
+	animation: eq-bounce 0.9s ease-in-out infinite;
 }
 
 /* [新增] 点赞按钮的心跳动画 */
@@ -351,4 +414,147 @@ html, body {
 .photo-wall-guide {
 	stroke-dasharray: 4 5;
 	animation: photo-wall-dash 2.4s linear infinite;
+}
+
+/* ==================== 白天主题 ====================
+ * 默认仍是黑夜（html[data-theme='dark']）。
+ * 白天模式把 --color-white 映射成深墨色，Tailwind 的 bg-white/10、text-white/60
+ * 这类玻璃/白字会自动变成“深色低透明度”，不必逐页改类名。 */
+html {
+	color-scheme: dark;
+}
+
+html[data-theme='light'] {
+	color-scheme: light;
+	--color-white: #0f172a;
+	--color-primary: #0f172a !important;
+	--color-secondary: rgba(15, 23, 42, 0.62) !important;
+	/* 填色（按钮、色块）沿用黑夜的浅青；文字另用更深的青色保证可读性 */
+	--color-brand: #7dd3fc !important;
+	--color-brand-secondary: #a5f3fc !important;
+	--color-bg: #d6e9f6 !important;
+	--color-border: rgba(56, 189, 248, 0.32) !important;
+	--color-card: rgba(255, 255, 255, 0.28) !important;
+	--color-article: rgba(255, 255, 255, 0.62) !important;
+}
+
+html[data-theme='light'] body {
+	/* 白天玻璃底：更浅的柔光 + 浅蓝渐变 */
+	background-image:
+		radial-gradient(1100px 620px at 12% -12%, rgba(56, 189, 248, 0.38), transparent 62%),
+		radial-gradient(900px 520px at 88% 4%, rgba(34, 211, 238, 0.28), transparent 58%),
+		radial-gradient(820px 620px at 50% 112%, rgba(14, 116, 144, 0.22), transparent 60%),
+		linear-gradient(160deg, #e3f2fc 0%, #d4e8f6 46%, #c3dcee 100%);
+}
+
+html[data-theme='light'] input::placeholder,
+html[data-theme='light'] textarea::placeholder {
+	color: rgba(15, 23, 42, 0.42);
+}
+
+html[data-theme='light'] input[type='date'],
+html[data-theme='light'] input[type='time'] {
+	color-scheme: light;
+}
+
+html[data-theme='light'] .card {
+	border-color: rgba(56, 189, 248, 0.32);
+	box-shadow:
+		0 24px 60px -38px rgba(15, 23, 42, 0.35),
+		inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* 回到顶部按钮：白天只保留青色图标，按钮本身用中性描边 */
+html[data-theme='light'] .scroll-top-button {
+	border-color: rgba(100, 116, 139, 0.28);
+}
+
+/* 邮箱图标：白天加深信封主体，避免整体过浅 */
+html[data-theme='light'] a[href^='mailto:'] svg path:first-of-type {
+	fill: #0ea5e9;
+	fill-opacity: 1;
+}
+
+html[data-theme='light'] a[href^='mailto:'] svg path:last-of-type {
+	fill: #7dd3fc;
+	fill-opacity: 1;
+}
+
+/* 白描边在白天统一换成浅青，避免出现黑色细线 */
+html[data-theme='light'] [class*='border-white'] {
+	border-color: rgba(56, 189, 248, 0.32) !important;
+}
+
+/* 中国地图上的城市点例外：白色描边和白色圆心在白天也保持白色 */
+html[data-theme='light'] .china-map-markers {
+	--color-white: #ffffff;
+}
+
+html[data-theme='light'] .china-map-markers [class*='border-white'] {
+	border-color: #ffffff !important;
+}
+
+/* 主题切换条：浅青玻璃底 + 青边，不要灰底黑边 */
+html[data-theme='light'] .theme-toggle {
+	background-color: rgba(255, 255, 255, 0.35);
+	border-color: rgba(56, 189, 248, 0.35);
+}
+
+html[data-theme='light'] .text-linear {
+	/* 必须用 background-image，background 简写会把 background-clip 重置成 border-box，
+	   渐变就会糊成一块矩形、文字反而不可见 */
+	background-image: linear-gradient(to right bottom, #0891b2 10%, #22d3ee 60%, #7dd3fc);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* 品牌色只用来填色，浅青底上的文字/图标改用亮一档的青蓝，保证白天对比度 */
+html[data-theme='light'] [class*='text-brand'] {
+	color: #0ea5e9 !important;
+}
+
+html[data-theme='light'] .fill-brand {
+	fill: #0ea5e9;
+}
+
+/* 导航选中/悬停滑块：不要银白色，换成一层青蓝玻璃 */
+html[data-theme='light'] .nav-hover-pill {
+	background-image: linear-gradient(to right bottom, rgba(186, 230, 253, 0.85), rgba(255, 255, 255, 0.55)) !important;
+	border-color: rgba(56, 189, 248, 0.45) !important;
+}
+
+/* 首页「我的足迹」照片条：白天加一层浅色蒙版，别压得那么暗 */
+html[data-theme='light'] .art-cover-overlay {
+	background: linear-gradient(to right, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.54) 55%, rgba(255, 255, 255, 0.26)) !important;
+}
+
+/* 足迹条的白环改成浅青环，和外层卡片的青色描边统一 */
+html[data-theme='light'] .art-footprint-strip {
+	--tw-ring-color: rgba(56, 189, 248, 0.55);
+	box-shadow: 0 12px 24px -18px rgba(8, 91, 120, 0.35);
+}
+
+/* 纯黑遮罩 / 深色媒体上的“白字”保持白色，别跟着变成深墨色 */
+html[data-theme='light'] .keep-dark,
+html[data-theme='light'] [class*='bg-black/'],
+html[data-theme='light'] [class*='bg-[#0b1220]'] {
+	--color-white: #ffffff;
+}
+
+html[data-theme='light'] .keep-dark {
+	--color-primary: #ffffff !important;
+	--color-secondary: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* WebGL 不可用时的噪声兜底与暗角，在白天也换成浅色 */
+html[data-theme='light'] .neuro-fallback {
+	background:
+		radial-gradient(70% 60% at 30% 20%, rgba(56, 189, 248, 0.28), transparent 65%),
+		radial-gradient(60% 55% at 78% 15%, rgba(139, 92, 246, 0.2), transparent 60%),
+		linear-gradient(160deg, #edf6ff, #d3e3f4) !important;
+}
+
+html[data-theme='light'] .neuro-vignette {
+	background: radial-gradient(ellipse at center, transparent 45%, rgba(15, 23, 42, 0.05) 100%);
 }

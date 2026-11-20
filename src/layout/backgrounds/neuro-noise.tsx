@@ -26,6 +26,7 @@ precision highp float;
 
 uniform vec2 uResolution;
 uniform float uTime;
+uniform float uLight;
 
 float hash(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
@@ -80,11 +81,11 @@ void main() {
 	float wisps = 1.0 - smoothstep(0.0, 0.16, abs(f - 0.5));
 	float dense = smoothstep(0.45, 0.88, f);
 
-	// 和「细胞电光」那版同一套蓝色，只是换成云的形式
-	vec3 base = vec3(0.002, 0.005, 0.014);
-	vec3 glowBlue = vec3(0.10, 0.36, 1.0);
-	vec3 liftBlue = vec3(0.38, 0.66, 1.0);
-	vec3 core = vec3(0.93, 0.97, 1.0);
+	// 黑夜是深蓝云海；白天把底色抬到近白，云层换成更淡的蓝紫光
+	vec3 base = mix(vec3(0.002, 0.005, 0.014), vec3(0.82, 0.90, 0.97), uLight);
+	vec3 glowBlue = mix(vec3(0.10, 0.36, 1.0), vec3(0.16, 0.58, 0.95), uLight);
+	vec3 liftBlue = mix(vec3(0.38, 0.66, 1.0), vec3(0.45, 0.75, 0.97), uLight);
+	vec3 core = mix(vec3(0.93, 0.97, 1.0), vec3(1.0), uLight);
 
 	// 左下角少放点云：越靠左下角云越淡（只压云，不动底色）
 	float leftFade = length(vec2(uv.x * 1.35, uv.y * 1.55));
@@ -97,21 +98,22 @@ void main() {
 	cloudAmount *= mix(0.58, 1.0, brFade);
 
 	vec3 color = base;
-	color += glowBlue * cloud * 0.62 * cloudAmount;
-	color += glowBlue * (1.0 - smoothstep(0.0, 0.95, length(q))) * 0.32 * cloudAmount;
-	color += liftBlue * pow(r.x, 1.6) * 0.45 * cloudAmount;
-	color += core * dense * 0.62 * cloudAmount;
-	color += liftBlue * wisps * 0.42 * cloudAmount;
+	color += glowBlue * cloud * mix(0.62, 0.44, uLight) * cloudAmount;
+	color += glowBlue * (1.0 - smoothstep(0.0, 0.95, length(q))) * mix(0.32, 0.24, uLight) * cloudAmount;
+	color += liftBlue * pow(r.x, 1.6) * mix(0.45, 0.30, uLight) * cloudAmount;
+	color += core * dense * mix(0.62, 0.26, uLight) * cloudAmount;
+	color += liftBlue * wisps * mix(0.42, 0.24, uLight) * cloudAmount;
 
-	// 大尺度明暗，云层才有厚薄
-	color *= 0.78 + 0.55 * smoothstep(0.1, 0.9, fbm(p * 0.55 + t * 0.3));
+	// 大尺度明暗，云层才有厚薄（白天保留更多层次，玻璃才有东西可模糊）
+	float large = smoothstep(0.1, 0.9, fbm(p * 0.55 + t * 0.3));
+	color *= mix(0.78 + 0.55 * large, 0.88 + 0.14 * large, uLight);
 
 	// 暗角：四周压下去，中间的玻璃卡片更突出
 	float vignette = smoothstep(0.35, 1.05, length((uv - 0.5) * vec2(1.05, 1.0)));
-	color *= 1.0 - 0.40 * vignette;
+	color *= 1.0 - mix(0.40, 0.16, uLight) * vignette;
 
 	// 轻微颗粒，避免深色区域出现色带
-	color += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) * 0.008;
+	color += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) * mix(0.008, 0.005, uLight);
 
 	gl_FragColor = vec4(min(color, vec3(1.0)), 1.0);
 }
@@ -177,6 +179,10 @@ export default function NeuroNoiseBackground() {
 
 		const resolutionUniform = gl.getUniformLocation(program, 'uResolution')
 		const timeUniform = gl.getUniformLocation(program, 'uTime')
+		const lightUniform = gl.getUniformLocation(program, 'uLight')
+		const readLight = () => (document.documentElement.dataset.theme === 'light' ? 1 : 0)
+		let light = readLight()
+		gl.uniform1f(lightUniform, light)
 
 		const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
 		let raf = 0
@@ -238,6 +244,17 @@ export default function NeuroNoiseBackground() {
 
 		resize()
 		draw(0)
+
+		// 主题切换时立刻重画，白天/黑夜的背景不用等下一帧
+		const syncLight = () => {
+			const next = readLight()
+			if (next === light) return
+			light = next
+			gl.uniform1f(lightUniform, next)
+			draw(elapsed)
+		}
+		const themeObserver = new MutationObserver(syncLight)
+		themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 
 		if (reduceMotion) {
 			canvas.dataset.status = 'static'
@@ -306,6 +323,7 @@ export default function NeuroNoiseBackground() {
 		return () => {
 			running = false
 			cancelAnimationFrame(raf)
+			themeObserver.disconnect()
 			window.removeEventListener('resize', resize)
 			document.removeEventListener('visibilitychange', onVisibility)
 			gl.deleteBuffer(buffer)
@@ -320,7 +338,7 @@ export default function NeuroNoiseBackground() {
 		<div className='pointer-events-none fixed inset-0 z-0 overflow-hidden' aria-hidden>
 			{/* WebGL 不可用时的兜底渐变，效果接近，不会露出白底 */}
 			<div
-				className='absolute inset-0 -z-10'
+				className='neuro-fallback absolute inset-0 -z-10'
 				style={{
 					background:
 						'radial-gradient(70% 60% at 30% 20%, rgba(24,120,150,0.35), transparent 65%), radial-gradient(60% 55% at 78% 15%, rgba(70,60,190,0.3), transparent 60%), linear-gradient(160deg, #0b1220, #080f1a)'
@@ -328,7 +346,7 @@ export default function NeuroNoiseBackground() {
 			/>
 			<canvas ref={canvasRef} className='h-full w-full' />
 			{/* 一层很淡的暗角，让边缘更沉一点 */}
-			<div className='absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.35)_100%)]' />
+			<div className='neuro-vignette absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.35)_100%)]' />
 		</div>
 	)
 }

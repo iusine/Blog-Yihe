@@ -1,7 +1,6 @@
 /*每个页面共同拥有的背景、导航、音乐和 Toast。*/
 'use client'
 import { PropsWithChildren } from 'react'
-import { useCenterInit } from '@/hooks/use-center'
 import BlurredBubblesBackground from './backgrounds/blurred-bubbles'
 import NeuroNoiseBackground from './backgrounds/neuro-noise'
 import NavCard from '@/components/nav-card'
@@ -12,9 +11,9 @@ import { useConfigStore } from '@/app/(home)/stores/config-store'
 import { ScrollTopButton } from '@/components/scroll-top-button'
 import { ThemedDialogHost } from '@/components/themed-dialog'
 import MusicCard from '@/components/music-card'
+import ThemeToggle from '@/components/theme-toggle'
 
 export default function Layout({ children }: PropsWithChildren) {
-    useCenterInit()
     useSizeInit()
     const { cardStyles, siteContent, regenerateKey } = useConfigStore()
     const { maxSM, init } = useSize()
@@ -69,6 +68,8 @@ export default function Layout({ children }: PropsWithChildren) {
             </main>
 
             {maxSM && init && <ScrollTopButton className='bg-brand/20 fixed right-6 bottom-[calc(2rem+env(safe-area-inset-bottom))] z-50 shadow-md' />}
+
+            <ThemeToggle />
 
             <ThemedDialogHost />
         </>

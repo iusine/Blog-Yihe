@@ -61,7 +61,9 @@ export const PROVINCE_CAPITALS: Record<string, string> = {
 	'630000': '西宁市',
 	'640000': '银川市',
 	'650000': '乌鲁木齐市',
-	'710000': '台北市'
+	'710000': '台北市',
+	'810000': '香港特别行政区',
+	'820000': '澳门特别行政区'
 }
 
 const neighborMap = adjacency as Record<string, string[]>

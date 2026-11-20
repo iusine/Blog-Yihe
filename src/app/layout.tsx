@@ -42,10 +42,30 @@ const htmlStyle = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 	return (
-		<html lang='zh-CN' suppressHydrationWarning style={htmlStyle}>
+		<html lang='zh-CN' data-theme='dark' suppressHydrationWarning style={htmlStyle}>
 			<Head />
 
 			<body>
+				{/* 首屏前先按 localStorage / 当地时间定好主题，避免先闪一下黑夜 */}
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `
+					(function () {
+						try {
+							var mode = localStorage.getItem('yihe-theme') || 'dark';
+							var theme = mode;
+							if (mode === 'auto') {
+								var hour = new Date().getHours();
+								theme = hour >= 8 && hour < 20 ? 'light' : 'dark';
+							}
+							document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+							document.documentElement.style.colorScheme = theme;
+						} catch (error) {}
+					})();
+		      `
+					}}
+				/>
+
 				{/* [新增] 给 Windows 打标记，用来隐藏滚动条（globals.css 里的 .windows 选择器） */}
 				<script
 					dangerouslySetInnerHTML={{

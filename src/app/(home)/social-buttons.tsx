@@ -1,6 +1,4 @@
-import { useCenterStore } from '@/hooks/use-center'
 import GithubSVG from '@/svgs/github.svg'
-import { ANIMATION_DELAY, CARD_SPACING } from '@/consts'
 import { useConfigStore } from './stores/config-store'
 import JuejinSVG from '@/svgs/juejin.svg'
 import EmailSVG from '@/svgs/email.svg'
@@ -16,11 +14,11 @@ import ZhihuSVG from '@/svgs/知乎.svg'
 import BilibiliSVG from '@/svgs/哔哩哔哩.svg'
 import QqSVG from '@/svgs/qq.svg'
 import { motion, AnimatePresence } from 'motion/react'
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import { toast } from 'sonner'
-import { useSize } from '@/hooks/use-size'
 import { HomeDraggableLayer } from './home-draggable-layer'
+import { cardPosition } from './home-layout'
 import { createPortal } from 'react-dom'
 
 type SocialButtonType =
@@ -49,38 +47,18 @@ interface SocialButtonConfig {
 }
 
 export default function SocialButtons() {
-    const center = useCenterStore()
     const { cardStyles, siteContent } = useConfigStore()
-    const { maxSM, init } = useSize()
     const styles = cardStyles.socialButtons
-    const hiCardStyles = cardStyles.hiCard
-    const order = maxSM && init ? 0 : styles.order
-    const delay = maxSM && init ? 0 : 100
+    const pos = cardPosition('socialButtons', cardStyles)
 
     const sortedButtons = useMemo(() => {
         const buttons = (siteContent.socialButtons || []) as SocialButtonConfig[]
         return [...buttons].sort((a, b) => a.order - b.order)
     }, [siteContent.socialButtons])
 
-    const [showStates, setShowStates] = useState<Record<string, boolean>>({})
     const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({})
     const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({})
     const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
-
-    useEffect(() => {
-        const baseDelay = order * ANIMATION_DELAY * 1000
-
-        sortedButtons.forEach((button, index) => {
-            const showDelay = baseDelay + index * delay
-            setTimeout(() => {
-                setShowStates(prev => ({ ...prev, [button.id]: true }))
-            }, showDelay)
-        })
-
-        setTimeout(() => {
-            setShowStates(prev => ({ ...prev, container: true }))
-        }, baseDelay)
-    }, [order, delay, sortedButtons])
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -104,12 +82,6 @@ export default function SocialButtons() {
         }
     }, [openDropdowns])
 
-    // 三个按钮居中在留言墙（hiCard）下方
-    const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x - styles.width / 2
-    const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y + hiCardStyles.height / 2 + CARD_SPACING
-
-    if (!showStates.container) return null
-
     const iconMap: Record<SocialButtonType, React.ComponentType<{ className?: string }>> = {
         github: GithubSVG,
         juejin: JuejinSVG,
@@ -128,14 +100,16 @@ export default function SocialButtons() {
         link: () => null
     }
 
-    const renderButton = (button: SocialButtonConfig) => {
-        if (!showStates[button.id]) return null
+    const renderButton = (button: SocialButtonConfig, index: number) => {
+        // 图标逐个冒出来的效果仍然保留，只是改成 CSS 延迟：
+        // HTML 一到就开始，不需要等 JS 里的 setTimeout 排队
+        const delayStyle = { '--card-delay': `${Math.min(index * 20, 120)}ms` } as React.CSSProperties
 
         const commonProps = {
-            initial: { opacity: 0, scale: 0.6 } as const,
-            animate: { opacity: 1, scale: 1 } as const,
             whileHover: { scale: 1.05 } as const,
-            whileTap: { scale: 0.95 } as const
+            whileTap: { scale: 0.95 } as const,
+            style: delayStyle,
+            className: 'card-enter'
         }
 
         const Icon = iconMap[button.type]
@@ -149,7 +123,7 @@ export default function SocialButtons() {
                     href={`mailto:${button.value}`}
                     aria-label='给我发邮件'
                     {...commonProps}
-                    className={`card relative rounded-xl font-medium whitespace-nowrap ${hasLabel ? 'flex items-center gap-2 px-3 py-2.5' : 'p-1.5'}`}>
+                    className={`card card-enter relative rounded-xl font-medium whitespace-nowrap ${hasLabel ? 'flex items-center gap-2 px-3 py-2.5' : 'p-1.5'}`}>
                     <Icon className={iconSize} />
                     {hasLabel && button.label}
                 </motion.a>
@@ -176,7 +150,7 @@ export default function SocialButtons() {
                                 setOpenDropdowns(prev => ({ ...prev, [button.id]: !prev[button.id] }))
                             }}
                             {...commonProps}
-                            className='card btn relative rounded-xl p-1.5'>
+                            className='card card-enter btn relative rounded-xl p-1.5'>
                             <Icon className='size-8' />
                         </motion.button>
                         {typeof window !== 'undefined' &&
@@ -225,7 +199,7 @@ export default function SocialButtons() {
                         })
                     }}
                     {...commonProps}
-                    className='card btn relative rounded-xl p-1.5'>
+                    className='card card-enter btn relative rounded-xl p-1.5'>
                     <Icon className='size-8' />
                 </motion.button>
             )
@@ -238,7 +212,7 @@ export default function SocialButtons() {
                     href={button.value}
                     target='_blank'
                     {...commonProps}
-                    className='card relative flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium whitespace-nowrap'>
+                    className='card card-enter relative flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium whitespace-nowrap'>
                     {hasLabel ? button.label : button.value}
                 </motion.a>
             )
@@ -250,7 +224,7 @@ export default function SocialButtons() {
                 href={button.value}
                 target='_blank'
                 {...commonProps}
-                className={`card relative rounded-xl font-medium whitespace-nowrap ${hasLabel ? 'flex items-center gap-2 px-3 py-2.5' : 'p-1.5'}`}>
+                className={`card card-enter relative rounded-xl font-medium whitespace-nowrap ${hasLabel ? 'flex items-center gap-2 px-3 py-2.5' : 'p-1.5'}`}>
                 <Icon className={iconSize} />
                 {hasLabel && button.label}
             </motion.a>
@@ -258,12 +232,12 @@ export default function SocialButtons() {
     }
 
     return (
-        <HomeDraggableLayer cardKey='socialButtons' x={x} y={y} width={styles.width} height={styles.height}>
-            <motion.div className='absolute max-sm:static' animate={{ left: x, top: y }} initial={{ left: x, top: y }}>
+        <HomeDraggableLayer cardKey='socialButtons' left={pos.left} top={pos.top} offsetX={pos.offsetX} offsetY={pos.offsetY} width={styles.width} height={styles.height}>
+            <div className='absolute max-sm:static' style={{ left: pos.left, top: pos.top }}>
                 <div className='absolute top-0 left-0 flex flex-row-reverse items-center justify-center gap-3 max-sm:static' style={{ width: styles.width }}>
-                    {sortedButtons.map(button => renderButton(button))}
+                    {sortedButtons.map((button, index) => renderButton(button, index))}
                 </div>
-            </motion.div>
+            </div>
         </HomeDraggableLayer>
     )
 }

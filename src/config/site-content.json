@@ -14,6 +14,12 @@
     "colorCard": "rgba(255, 255, 255, 0.07)",
     "colorArticle": "rgba(255, 255, 255, 0.05)"
   },
+  "music": {
+    "api": "/api/music",
+    "server": "netease",
+    "type": "playlist",
+    "id": "645442296"
+  },
   "backgroundColors": [
     "#1d4ed84d",
     "#0e74904d",

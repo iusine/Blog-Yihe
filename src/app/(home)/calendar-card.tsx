@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Card from '@/components/card'
-import { useCenterStore } from '@/hooks/use-center'
 import { useConfigStore } from './stores/config-store'
 import { useLayoutEditStore } from './stores/layout-edit-store'
-import { CARD_SPACING } from '@/consts'
+import { cardPosition } from './home-layout'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { cn } from '@/lib/utils'
@@ -15,31 +14,31 @@ dayjs.locale('zh-cn')
 
 export default function CalendarCard() {
     const router = useRouter()
-    const center = useCenterStore()
     const { cardStyles, siteContent } = useConfigStore()
     // 拖拽布局时不要触发跳转
     const editing = useLayoutEditStore(state => state.editing)
 
     // [修改] 原来每次渲染直接 dayjs()，页面一直开着就不会跨天；
     // 现在存进 state 并每 30 秒对齐一次，零点过后新历和农历都会自动翻到第二天。
-    const [now, setNow] = useState(() => dayjs())
+    // 初始为 null：服务端预渲染的是构建时的日期，和访客当天对不上会触发 hydration 报错，
+    // 所以首帧只画表头和固定高度的空网格，挂载后再填真实日期。
+    const [now, setNow] = useState<dayjs.Dayjs | null>(null)
 
     useEffect(() => {
+        setNow(dayjs())
         const timer = setInterval(() => setNow(dayjs()), 30 * 1000)
         return () => clearInterval(timer)
     }, [])
 
-    const currentDate = now.date()
-    const firstDayOfMonth = now.startOf('month')
-    const firstDayWeekday = (firstDayOfMonth.day() + 6) % 7
-    const daysInMonth = now.daysInMonth()
-    const currentWeekday = (now.day() + 6) % 7
+    const currentDate = now?.date() ?? 0
+    const firstDayWeekday = now ? (now.startOf('month').day() + 6) % 7 : 0
+    const daysInMonth = now?.daysInMonth() ?? 0
+    const currentWeekday = now ? (now.day() + 6) % 7 : -1
     const styles = cardStyles.calendarCard
-    const hiCardStyles = cardStyles.hiCard
-    const clockCardStyles = cardStyles.clockCard
+    const pos = cardPosition('calendarCard', cardStyles)
 
     // [新增] 今天的农历，例如「十月初七」
-    const lunar = getLunarDate(now.toDate())
+    const lunar = now ? getLunarDate(now.toDate()) : null
     // 卡片被拖得很小时，格子放不下第二行，只保留公历数字
     const compact = styles.height < 240 || styles.width < 240
 
@@ -48,13 +47,9 @@ export default function CalendarCard() {
         if (editing) return
         router.push(`/huangli?date=${dateKey}`)
     }
-
-    const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x + CARD_SPACING + hiCardStyles.width / 2
-    const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y - clockCardStyles.offset + CARD_SPACING
-
     return (
-        <HomeDraggableLayer cardKey='calendarCard' x={x} y={y} width={styles.width} height={styles.height}>
-            <Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='flex flex-col max-sm:static'>
+        <HomeDraggableLayer cardKey='calendarCard' left={pos.left} top={pos.top} offsetX={pos.offsetX} offsetY={pos.offsetY} width={styles.width} height={styles.height}>
+            <Card order={styles.order} width={styles.width} height={styles.height} left={pos.left} top={pos.top} className='flex flex-col max-sm:static'>
                 {siteContent.enableChristmas && (
                     <>
                         <img
@@ -68,16 +63,23 @@ export default function CalendarCard() {
 
                 {/* [修改] 公历后面追加农历，例如「2026/11/15 周日 · 十月初七」；点标题看今天的黄历 */}
                 <h3
-                    onClick={() => openAlmanac(now.format('YYYY-MM-DD'))}
+                    onClick={() => now && openAlmanac(now.format('YYYY-MM-DD'))}
                     title='查看今天的黄历'
                     className='text-secondary hover:text-brand flex cursor-pointer items-baseline gap-1.5 text-sm whitespace-nowrap transition-colors'>
-                    <span>
-                        {now.format('YYYY/M/D')} {now.format('ddd')}
-                    </span>
-                    {lunar && (
-                        <span className='text-secondary/70 text-xs' title={`农历${lunar.text}`}>
-                            · {lunar.text}
-                        </span>
+                    {now ? (
+                        <>
+                            <span>
+                                {now.format('YYYY/M/D')} {now.format('ddd')}
+                            </span>
+                            {lunar && (
+                                <span className='text-secondary/70 text-xs' title={`农历${lunar.text}`}>
+                                    · {lunar.text}
+                                </span>
+                            )}
+                        </>
+                    ) : (
+                        // 占位：和真实日期同一行高，挂载后原地替换
+                        <span>{'\u00A0'}</span>
                     )}
                 </h3>
 
@@ -95,11 +97,11 @@ export default function CalendarCard() {
                         )
                     })}
 
-                    {new Array(firstDayWeekday).fill(0).map((_, index) => (
+                    {now && new Array(firstDayWeekday).fill(0).map((_, index) => (
                         <li key={`empty-${index}`} />
                     ))}
 
-                    {new Array(daysInMonth).fill(0).map((_, index) => {
+                    {now && new Array(daysInMonth).fill(0).map((_, index) => {
                         const day = index + 1
                         const isToday = day === currentDate
                         // [新增] 每一天都算出自己的农历日，显示在公历数字下面

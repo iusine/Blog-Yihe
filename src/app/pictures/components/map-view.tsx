@@ -22,7 +22,7 @@ import CityPin from './city-pin'
 const PLANE_WIDTH = 1000
 /** 地图平面的倾斜角度，制造「三维」俯视感 */
 const TILT = 42
-const MIN_ZOOM = 0.35
+const MIN_ZOOM = 0.5
 const MAX_ZOOM = 16
 /** 低于这个纬度的点（南海诸岛）不参与取景，避免地图被撑高、主体变小 */
 const BOUNDS_MIN_LAT = 17.5
@@ -462,12 +462,13 @@ export default function MapView({
 			onPointerMove={handlePointerMove}
 			onPointerUp={endDrag}
 			onPointerCancel={endDrag}
+			onDoubleClick={event => zoomBy(1.6, event.clientX, event.clientY)}
 			onPointerLeave={endDrag}>
 			<div className='absolute inset-0 flex items-center justify-center'>
 				<div
 					style={{
 						transform: `translate3d(${camera.x}px, ${camera.y}px, 0) scale(${camera.scale})`,
-						transition: dragging ? 'none' : 'transform 700ms cubic-bezier(0.22, 1, 0.36, 1)',
+						transition: dragging ? 'none' : 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
 						transformStyle: 'preserve-3d'
 					}}>
 					<div
@@ -584,7 +585,7 @@ export default function MapView({
 			</div>
 
 			{/* 文字标注层：在倾斜平面之外，用相机变换算出位置，所以字永远是正的 */}
-			<div className='pointer-events-none absolute inset-0 z-20 overflow-hidden'>
+			<div className='china-map-markers pointer-events-none absolute inset-0 z-20 overflow-hidden'>
 				{mapMarkers.map(marker => (
 					<button
 						key={marker.key}
@@ -673,14 +674,14 @@ export default function MapView({
 			<div className='absolute right-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] flex flex-col gap-2'>
 				<button
 					type='button'
-					onClick={() => zoomBy(1.35)}
+					onClick={() => zoomBy(1.5)}
 					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:h-10 max-sm:w-10'
 					aria-label='放大'>
 					<Plus className='h-4 w-4' />
 				</button>
 				<button
 					type='button'
-					onClick={() => zoomBy(0.74)}
+					onClick={() => zoomBy(0.67)}
 					className='bg-card flex h-9 w-9 items-center justify-center rounded-xl border backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:h-10 max-sm:w-10'
 					aria-label='缩小'>
 					<Minus className='h-4 w-4' />

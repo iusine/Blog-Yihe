@@ -1,9 +1,12 @@
 /* 中央介绍卡片：留言墙入口。 */
-import { useCenterStore } from '@/hooks/use-center'
+'use client'
+
 import Card from '@/components/card'
 import { useConfigStore } from './stores/config-store'
 import { HomeDraggableLayer } from './home-draggable-layer'
+import { cardPosition } from './home-layout'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 /** 按时间段给一句中文问候 */
 function getGreeting() {
@@ -23,17 +26,20 @@ function getGreeting() {
 }
 
 export default function HiCard() {
-    const center = useCenterStore()
     const { cardStyles } = useConfigStore()
-    const greeting = getGreeting()
     const styles = cardStyles.hiCard
+    const pos = cardPosition('hiCard', cardStyles)
 
-    const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x - styles.width / 2
-    const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y - styles.height / 2
+    // 问候语依赖本机时间，服务端预渲染时算的是一台机器的时钟，和访客的不一致会触发 hydration 报错；
+    // 首帧先渲染一个不换行空格占位，挂载后再换成真实问候，行高一致不会跳。
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => setMounted(true), [])
+
+    const greeting = mounted ? getGreeting() : '\u00A0'
 
     return (
-        <HomeDraggableLayer cardKey='hiCard' x={x} y={y} width={styles.width} height={styles.height}>
-            <Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='relative text-center max-sm:static max-sm:translate-0'>
+        <HomeDraggableLayer cardKey='hiCard' left={pos.left} top={pos.top} offsetX={pos.offsetX} offsetY={pos.offsetY} width={styles.width} height={styles.height}>
+            <Card order={styles.order} width={styles.width} height={styles.height} left={pos.left} top={pos.top} className='text-center max-sm:static max-sm:translate-0'>
                 <Link href='/message' className='flex h-full flex-col items-center justify-center gap-1.5'>
                     <span className='font-averia text-linear -translate-y-2.5 text-[40px] leading-none'>留言墙</span>
 

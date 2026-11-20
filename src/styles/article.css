@@ -327,3 +327,67 @@
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
 }
+
+/* ==================== 白天主题：正文里的半透明白边/白底换成深色 ==================== */
+html[data-theme='light'] .prose code,
+html[data-theme='light'] .prose pre,
+html[data-theme='light'] .prose img,
+html[data-theme='light'] .prose iframe {
+    border-color: rgba(15, 23, 42, 0.14);
+}
+
+html[data-theme='light'] .prose .code-block-copy-btn {
+    background: rgba(15, 23, 42, 0.06);
+    border-color: rgba(15, 23, 42, 0.16);
+}
+
+html[data-theme='light'] .prose .code-block-copy-btn:hover {
+    background: rgba(15, 23, 42, 0.12);
+    border-color: rgba(15, 23, 42, 0.24);
+}
+
+html[data-theme='light'] .prose blockquote {
+    background: rgba(15, 23, 42, 0.04);
+}
+
+html[data-theme='light'] .prose .admonition {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+html[data-theme='light'] .prose .admonition-note {
+    --admonition-color: #0284c7;
+    --admonition-bg: rgba(2, 132, 199, 0.08);
+}
+
+html[data-theme='light'] .prose .admonition-tip {
+    --admonition-color: #059669;
+    --admonition-bg: rgba(5, 150, 105, 0.08);
+}
+
+html[data-theme='light'] .prose .admonition-important {
+    --admonition-color: #7c3aed;
+    --admonition-bg: rgba(124, 58, 237, 0.08);
+}
+
+html[data-theme='light'] .prose .admonition-warning {
+    --admonition-color: #b45309;
+    --admonition-bg: rgba(180, 83, 9, 0.09);
+}
+
+html[data-theme='light'] .prose .admonition-caution {
+    --admonition-color: #e11d48;
+    --admonition-bg: rgba(225, 29, 72, 0.08);
+}
+
+html[data-theme='light'] .prose .footnotes {
+    border-top-color: rgba(15, 23, 42, 0.16);
+}
+
+html[data-theme='light'] .prose hr {
+    border-top-color: rgba(15, 23, 42, 0.12);
+}
+
+html[data-theme='light'] .prose th,
+html[data-theme='light'] .prose td {
+    border-bottom-color: rgba(15, 23, 42, 0.12);
+}

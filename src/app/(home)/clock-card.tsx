@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, MapPin, Moon, Sun } from 'lucide-react'
 import Card from '@/components/card'
-import { useCenterStore } from '@/hooks/use-center'
 import { useConfigStore } from './stores/config-store'
-import { CARD_SPACING } from '@/consts'
+import { cardPosition } from './home-layout'
 import { HomeDraggableLayer } from './home-draggable-layer'
 import { describeWeather, useLocationWeather, weatherKind } from '@/hooks/use-location-weather'
 
@@ -23,14 +22,16 @@ function WeatherIcon({ code, isDay }: { code?: number; isDay?: boolean }) {
 }
 
 export default function ClockCard() {
-    const center = useCenterStore()
     const { cardStyles, siteContent } = useConfigStore()
-    const [time, setTime] = useState(new Date())
+    // 时间只能由浏览器给：服务端预渲染时算出来的时刻一定和用户看到的时刻对不上，
+    // 直接 SSR 会触发 hydration 报错。所以先渲染"未点亮的数码管"，挂载后再填真实时间。
+    const [time, setTime] = useState<Date | null>(null)
     const styles = cardStyles.clockCard
-    const hiCardStyles = cardStyles.hiCard
+    const pos = cardPosition('clockCard', cardStyles)
     const showSeconds = siteContent.clockShowSeconds ?? false
 
     useEffect(() => {
+        setTime(new Date())
         const interval = showSeconds ? 1000 : 5000
         const timer = setInterval(() => {
             setTime(new Date())
@@ -39,12 +40,12 @@ export default function ClockCard() {
         return () => clearInterval(timer)
     }, [showSeconds])
 
-    const hours = time.getHours().toString().padStart(2, '0')
-    const minutes = time.getMinutes().toString().padStart(2, '0')
-    const seconds = time.getSeconds().toString().padStart(2, '0')
+    const hours = time ? time.getHours().toString().padStart(2, '0') : ''
+    const minutes = time ? time.getMinutes().toString().padStart(2, '0') : ''
+    const seconds = time ? time.getSeconds().toString().padStart(2, '0') : ''
 
-    const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x + CARD_SPACING + hiCardStyles.width / 2
-    const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y - styles.offset - styles.height
+    /** 服务端/首帧统一画成空数码管，宽度和真实数字一致，不会跳动 */
+    const digit = (text: string) => (time ? parseInt(text) : null)
 
     const location = useLocationWeather()
     const regionText = [location.province, location.city].filter(Boolean).join(' ')
@@ -52,8 +53,8 @@ export default function ClockCard() {
     const temperatureText = location.temperature === undefined ? '--' : `${Math.round(location.temperature)}°C`
 
     return (
-        <HomeDraggableLayer cardKey='clockCard' x={x} y={y} width={styles.width} height={styles.height}>
-            <Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='p-3 max-sm:static'>
+        <HomeDraggableLayer cardKey='clockCard' left={pos.left} top={pos.top} offsetX={pos.offsetX} offsetY={pos.offsetY} width={styles.width} height={styles.height}>
+            <Card order={styles.order} width={styles.width} height={styles.height} left={pos.left} top={pos.top} className='p-3 max-sm:static'>
                 {siteContent.enableChristmas && (
                     <>
                         <img
@@ -74,16 +75,16 @@ export default function ClockCard() {
                 {/* 卡片里两个盒子：左边时间，右边地区和天气 */}
                 <div className='flex h-full w-full items-stretch gap-2'>
                     <div className='card-rounded flex flex-1 items-center justify-center gap-1 px-2'>
-                        <SevenSegmentDigit value={parseInt(hours[0])} scale={0.8} />
-                        <SevenSegmentDigit value={parseInt(hours[1])} scale={0.8} />
+                        <SevenSegmentDigit value={digit(hours[0])} scale={0.8} />
+                        <SevenSegmentDigit value={digit(hours[1])} scale={0.8} />
                         <Colon className='mx-1' />
-                        <SevenSegmentDigit value={parseInt(minutes[0])} scale={0.8} />
-                        <SevenSegmentDigit value={parseInt(minutes[1])} scale={0.8} />
+                        <SevenSegmentDigit value={digit(minutes[0])} scale={0.8} />
+                        <SevenSegmentDigit value={digit(minutes[1])} scale={0.8} />
                         {showSeconds && (
                             <>
                                 <Colon className='mx-1' />
-                                <SevenSegmentDigit value={parseInt(seconds[0])} scale={0.8} />
-                                <SevenSegmentDigit value={parseInt(seconds[1])} scale={0.8} />
+                                <SevenSegmentDigit value={digit(seconds[0])} scale={0.8} />
+                                <SevenSegmentDigit value={digit(seconds[1])} scale={0.8} />
                             </>
                         )}
                     </div>
@@ -107,7 +108,8 @@ export default function ClockCard() {
 }
 
 interface SevenSegmentDigitProps {
-    value: number
+    /** null = 未点亮的空数码管（SSR / 首帧占位），宽度与普通数字一致 */
+    value: number | null
     className?: string
     /** 缩放：1 = 原始 29×52 */
     scale?: number
@@ -127,7 +129,8 @@ function SevenSegmentDigit({ value, className, scale = 1 }: SevenSegmentDigitPro
         9: [true, true, true, true, false, true, true]
     }
 
-    const segments = segmentMap[value as keyof typeof segmentMap] || segmentMap[0]
+    const blank: boolean[] = [false, false, false, false, false, false, false]
+    const segments = value === null ? blank : segmentMap[value as keyof typeof segmentMap] || segmentMap[0]
     const activeColor = 'var(--color-primary)'
     // 没点亮的段直接不画，只保留亮着的笔画
     const inactiveColor = 'transparent'

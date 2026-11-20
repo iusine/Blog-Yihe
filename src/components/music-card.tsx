@@ -1,143 +1,51 @@
+/* 首页迷你播放器：一个长方形盒子，四格布局 —— 封面 / 歌名歌手 / 上一首·播放暂停·下一首 / 音量。
+ * 点封面或歌名进入 /music，进入音乐页后本卡片隐藏；播放状态在全局 music-store 里，不会断播。 */
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
-import Card from '@/components/card'
-import { useCenterStore } from '@/hooks/use-center'
-import { useConfigStore } from '../app/(home)/stores/config-store'
-import { CARD_SPACING } from '@/consts'
-import MusicSVG from '@/svgs/music.svg'
-import PlaySVG from '@/svgs/play.svg'
-import { HomeDraggableLayer } from '../app/(home)/home-draggable-layer'
-import { Pause } from 'lucide-react'
+import { useEffect } from 'react'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
-
-const MUSIC_FILES = ['/music/close-to-you.mp3']
+import { Music2, Pause, Play, RotateCcw, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-react'
+import Card from '@/components/card'
+import { useConfigStore } from '../app/(home)/stores/config-store'
+import { cardPosition } from '../app/(home)/home-layout'
+import { HomeDraggableLayer } from '../app/(home)/home-draggable-layer'
+import { useMusicStore } from '@/stores/music-store'
+import { DEFAULT_MUSIC_CONFIG } from '@/lib/meting'
 
 export default function MusicCard() {
 	const pathname = usePathname()
-	const center = useCenterStore()
 	const { cardStyles, siteContent } = useConfigStore()
+	const config = siteContent.music ?? DEFAULT_MUSIC_CONFIG
 	const styles = cardStyles.musicCard
-	const hiCardStyles = cardStyles.hiCard
-	const clockCardStyles = cardStyles.clockCard
-	const calendarCardStyles = cardStyles.calendarCard
+	const pos = cardPosition('musicCard', cardStyles)
 
-	const [isPlaying, setIsPlaying] = useState(false)
-	const [currentIndex, setCurrentIndex] = useState(0)
-	const [progress, setProgress] = useState(0)
-	const audioRef = useRef<HTMLAudioElement | null>(null)
-	const currentIndexRef = useRef(0)
+	const songs = useMusicStore(state => state.songs)
+	const status = useMusicStore(state => state.status)
+	const error = useMusicStore(state => state.error)
+	const index = useMusicStore(state => state.index)
+	const isPlaying = useMusicStore(state => state.isPlaying)
+	const volume = useMusicStore(state => state.volume)
+	const muted = useMusicStore(state => state.muted)
 
-	const isHomePage = pathname === '/'
+	const song = songs[index]
+	const ready = status === 'ready'
+	const VolumeIcon = muted || volume === 0 ? VolumeX : volume > 0.5 ? Volume2 : Volume1
 
-	const position = useMemo(() => {
-		// If not on home page, always position at bottom-right corner when playing
-		if (!isHomePage) {
-			return {
-				x: center.width - styles.width - 16,
-				y: center.height - styles.height - 16
-			}
-		}
+	const title = song?.name ?? (status === 'error' ? '音乐加载失败' : '我的音乐')
+	const subtitle = song?.artist ?? (status === 'error' ? error || '点击重试' : ready ? '网易云歌单' : '正在连接音乐...')
 
-		// Default position on home page
-		return {
-			x: styles.offsetX !== null ? center.x + styles.offsetX : center.x + CARD_SPACING + hiCardStyles.width / 2 - styles.offset,
-			y: styles.offsetY !== null ? center.y + styles.offsetY : center.y - clockCardStyles.offset + CARD_SPACING + calendarCardStyles.height + CARD_SPACING
-		}
-	}, [isPlaying, isHomePage, center, styles, hiCardStyles, clockCardStyles, calendarCardStyles])
-
-	const { x, y } = position
-
-	// Initialize audio element
 	useEffect(() => {
-		if (!audioRef.current) {
-			audioRef.current = new Audio()
-		}
+		useMusicStore.getState().load(config)
+	}, [config])
 
-		const audio = audioRef.current
-
-		const updateProgress = () => {
-			if (audio.duration) {
-				setProgress((audio.currentTime / audio.duration) * 100)
-			}
-		}
-
-		const handleEnded = () => {
-			const nextIndex = (currentIndexRef.current + 1) % MUSIC_FILES.length
-			currentIndexRef.current = nextIndex
-			setCurrentIndex(nextIndex)
-			setProgress(0)
-		}
-
-		const handleTimeUpdate = () => {
-			updateProgress()
-		}
-
-		const handleLoadedMetadata = () => {
-			updateProgress()
-		}
-
-		audio.addEventListener('timeupdate', handleTimeUpdate)
-		audio.addEventListener('ended', handleEnded)
-		audio.addEventListener('loadedmetadata', handleLoadedMetadata)
-
-		return () => {
-			audio.removeEventListener('timeupdate', handleTimeUpdate)
-			audio.removeEventListener('ended', handleEnded)
-			audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
-		}
-	}, [])
-
-	// Handle currentIndex change - load new audio
-	useEffect(() => {
-		currentIndexRef.current = currentIndex
-		if (audioRef.current) {
-			const wasPlaying = !audioRef.current.paused
-			audioRef.current.pause()
-			audioRef.current.src = MUSIC_FILES[currentIndex]
-			audioRef.current.loop = false
-			setProgress(0)
-
-			if (wasPlaying) {
-				audioRef.current.play().catch(console.error)
-			}
-		}
-	}, [currentIndex])
-
-	// Handle play/pause state change
-	useEffect(() => {
-		if (!audioRef.current) return
-
-		if (isPlaying) {
-			audioRef.current.play().catch(console.error)
-		} else {
-			audioRef.current.pause()
-		}
-	}, [isPlaying])
-
-	// Cleanup on unmount
-	useEffect(() => {
-		return () => {
-			if (audioRef.current) {
-				audioRef.current.pause()
-				audioRef.current.src = ''
-			}
-		}
-	}, [])
-
-	const togglePlayPause = () => {
-		setIsPlaying(!isPlaying)
-	}
-
-	// Hide component if not on home page and not playing
-	if (!isHomePage && !isPlaying) {
-		return null
-	}
+	// 只在首页显示；进入 /music 后这个播放器消失
+	if (pathname !== '/') return null
 
 	return (
-		<HomeDraggableLayer cardKey='musicCard' x={x} y={y} width={styles.width} height={styles.height}>
-			<Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className={clsx('flex items-center gap-3', isHomePage && 'max-sm:static', !isHomePage && 'fixed')}>
+		<HomeDraggableLayer cardKey='musicCard' left={pos.left} top={pos.top} offsetX={pos.offsetX} offsetY={pos.offsetY} width={styles.width} height={styles.height}>
+			<Card order={styles.order} width={styles.width} height={styles.height} left={pos.left} top={pos.top} className={clsx('p-3! max-sm:static')} interactive={false}>
 				{siteContent.enableChristmas && (
 					<>
 						<img
@@ -155,19 +63,104 @@ export default function MusicCard() {
 					</>
 				)}
 
-				<MusicSVG className='h-8 w-8' />
+				<div className='flex h-full items-center gap-1.5'>
+					{/* 1. 专辑封面，点击进入音乐页 */}
+					<Link
+						href='/music'
+						aria-label='进入音乐页'
+						title='进入音乐页'
+						className='group relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white/10'>
+						<Music2 className='text-secondary absolute inset-0 m-auto h-5 w-5' />
+						{song?.pic && (
+							<img
+								src={song.pic}
+								alt=''
+								className='absolute inset-0 h-full w-full object-cover'
+								onError={event => {
+									event.currentTarget.style.display = 'none'
+								}}
+							/>
+						)}
+						<span className='absolute inset-0 flex items-center justify-center bg-[#0b1220]/45 opacity-0 transition-opacity group-hover:opacity-100'>
+							<Music2 className='h-5 w-5 text-white' />
+						</span>
+					</Link>
 
-				<div className='flex-1'>
-					<div className='text-secondary text-sm'>Close To You</div>
+					{/* 2. 歌名与歌手 */}
+					<Link
+						href='/music'
+						aria-label='进入音乐页'
+						className='hover:bg-white/[0.08] flex h-16 min-w-0 flex-1 flex-col justify-center rounded-xl px-2.5 transition-colors'>
+						<div className='text-primary truncate text-sm font-bold'>{title}</div>
+						<div className='text-secondary mt-0.5 truncate text-xs'>{subtitle}</div>
+					</Link>
 
-					<div className='mt-1 h-2 rounded-full bg-white/10'>
-						<div className='bg-linear h-full rounded-full transition-all duration-300' style={{ width: `${progress}%` }} />
+					{/* 3. 上一首 / 播放暂停 / 下一首 */}
+					<div className='flex h-16 shrink-0 items-center gap-0.5 rounded-xl px-1'>
+						<button
+							type='button'
+							onClick={() => useMusicStore.getState().prev()}
+							title='上一首'
+							aria-label='上一首'
+							disabled={!ready}
+							className='text-primary hover:text-brand flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-40'>
+							<SkipBack className='h-3.5 w-3.5' />
+						</button>
+						<button
+							type='button'
+							onClick={() => useMusicStore.getState().toggle()}
+							title={isPlaying ? '暂停' : '播放'}
+							aria-label={isPlaying ? '暂停' : '播放'}
+							disabled={!ready}
+							className='bg-linear flex h-7 w-7 items-center justify-center rounded-full shadow-md transition-all hover:scale-105 hover:opacity-90 disabled:opacity-40'>
+							{isPlaying ? <Pause className='h-3.5 w-3.5' /> : <Play className='ml-0.5 h-3.5 w-3.5' />}
+						</button>
+						<button
+							type='button'
+							onClick={() => useMusicStore.getState().next()}
+							title='下一首'
+							aria-label='下一首'
+							disabled={!ready}
+							className='text-primary hover:text-brand flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-40'>
+							<SkipForward className='h-3.5 w-3.5' />
+						</button>
 					</div>
-				</div>
 
-				<button onClick={togglePlayPause} className='flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-opacity hover:opacity-80'>
-					{isPlaying ? <Pause className='text-brand h-4 w-4' /> : <PlaySVG className='text-brand ml-1 h-4 w-4' />}
-				</button>
+					{/* 4. 音量 */}
+					{status === 'error' ? (
+						<button
+							type='button'
+							onClick={() => useMusicStore.getState().load(config, true)}
+							title='重新加载'
+							aria-label='重新加载'
+							className='text-secondary hover:text-brand flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] transition-colors'>
+							<RotateCcw className='h-4 w-4' />
+							重试
+						</button>
+					) : (
+						<div className='flex h-16 shrink-0 items-center gap-1 rounded-xl px-1'>
+							<button
+								type='button'
+								onClick={() => useMusicStore.getState().toggleMute()}
+								title={muted ? '取消静音' : '静音'}
+								aria-label={muted ? '取消静音' : '静音'}
+								className='text-secondary hover:text-brand flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-white/10'>
+								<VolumeIcon className='h-3.5 w-3.5' />
+							</button>
+							<input
+								type='range'
+								min={0}
+								max={1}
+								step={0.01}
+								value={muted ? 0 : volume}
+								onChange={event => useMusicStore.getState().setVolume(Number(event.target.value))}
+								title='音量'
+								aria-label='音量'
+								className='h-1 w-9 cursor-pointer accent-[var(--color-brand)]'
+							/>
+						</div>
+					)}
+				</div>
 			</Card>
 		</HomeDraggableLayer>
 	)

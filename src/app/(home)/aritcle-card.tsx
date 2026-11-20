@@ -1,29 +1,22 @@
 /* 首图和文章入口。 */
 import Card from '@/components/card'
 import PicbedImage from '@/components/picbed-image'
-import { useCenterStore } from '@/hooks/use-center'
 import { useLatestBlog } from '@/hooks/use-blog-index'
 import { useConfigStore } from './stores/config-store'
-import { CARD_SPACING } from '@/consts'
+import { cardPosition } from './home-layout'
 import dayjs from 'dayjs'
 import Link from 'next/link'
 import { HomeDraggableLayer } from './home-draggable-layer'
 
 export default function ArticleCard() {
-    const center = useCenterStore()
     const { cardStyles, siteContent } = useConfigStore()
     const { blog, loading } = useLatestBlog()
     const styles = cardStyles.articleCard
-    const hiCardStyles = cardStyles.hiCard
-    const navCardStyles = cardStyles.navCard
-
-    // 左边缘与左侧导航卡对齐（原来按社交按钮宽度算，右边会往里缩一截）
-    const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x - hiCardStyles.width / 2 - navCardStyles.width - CARD_SPACING
-    const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y + hiCardStyles.height / 2 + CARD_SPACING
+    const pos = cardPosition('articleCard', cardStyles)
 
     return (
-        <HomeDraggableLayer cardKey='articleCard' x={x} y={y} width={styles.width} height={styles.height}>
-            <Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='space-y-2 max-sm:static'>
+        <HomeDraggableLayer cardKey='articleCard' left={pos.left} top={pos.top} offsetX={pos.offsetX} offsetY={pos.offsetY} width={styles.width} height={styles.height}>
+            <Card order={styles.order} width={styles.width} height={styles.height} left={pos.left} top={pos.top} className='space-y-2 max-sm:static'>
                 {siteContent.enableChristmas && (
                     <>
                         <img

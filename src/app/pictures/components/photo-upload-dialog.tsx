@@ -32,6 +32,7 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 	const inputRef = useRef<HTMLInputElement>(null)
 	const [drafts, setDrafts] = useState<Draft[]>([])
 	const [saving, setSaving] = useState(false)
+	const [dragOver, setDragOver] = useState(false)
 	const draftsRef = useRef<Draft[]>([])
 
 	draftsRef.current = drafts
@@ -63,6 +64,26 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 			return
 		}
 		setDrafts(previous => [...previous, ...next])
+	}
+
+	const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+		if (saving) return
+		if (!Array.from(event.dataTransfer.types).includes('Files')) return
+		event.preventDefault()
+		event.dataTransfer.dropEffect = 'copy'
+		setDragOver(true)
+	}
+
+	const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+		if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
+		setDragOver(false)
+	}
+
+	const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+		event.preventDefault()
+		setDragOver(false)
+		if (saving) return
+		addFiles(event.dataTransfer.files)
 	}
 
 	const updateDraft = (key: string, patch: Partial<Draft>) => {
@@ -109,6 +130,11 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 
 	return (
 		<DialogModal open onClose={saving ? () => {} : onClose} className='card max-h-[88vh] w-[min(720px,94vw)] overflow-y-auto' lockScroll>
+			<div
+				onDragOver={handleDragOver}
+				onDragLeave={handleDragLeave}
+				onDrop={handleDrop}
+				className={dragOver ? 'ring-brand/50 rounded-2xl ring-2' : undefined}>
 			<div className='mb-4 flex items-start justify-between gap-4'>
 				<div>
 					<h2 className='text-xl font-bold'>上传照片</h2>
@@ -126,9 +152,11 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 			<button
 				type='button'
 				onClick={() => inputRef.current?.click()}
-				className='mb-4 flex h-24 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/30/40 bg-white/10 text-sm text-white transition-colors hover:bg-white/20'>
+				className={`mb-4 flex h-24 w-full items-center justify-center gap-2 rounded-xl border border-dashed bg-white/10 text-sm transition-colors ${
+					dragOver ? 'border-brand bg-brand/10 text-brand' : 'border-white/30/40 text-white hover:bg-white/20'
+				}`}>
 				<Plus className='h-4 w-4' />
-				选择照片（可多选）
+				{dragOver ? '松开即可添加照片' : '选择照片（可多选，也可以直接拖进来）'}
 			</button>
 
 			<div className='space-y-3'>
@@ -186,6 +214,7 @@ export default function PhotoUploadDialog({ cityName, onClose, onSubmit }: Photo
 				<button type='button' onClick={handleSubmit} disabled={saving || drafts.length === 0} className='brand-btn flex-1 justify-center rounded-lg px-4 py-2 text-sm disabled:opacity-60'>
 					{saving ? '上传中…' : drafts.length > 0 ? `上传 ${drafts.length} 张` : '上传'}
 				</button>
+			</div>
 			</div>
 		</DialogModal>
 	)

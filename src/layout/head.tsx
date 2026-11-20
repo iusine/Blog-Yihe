@@ -11,6 +11,9 @@ export default function Head() {
 
 			{/* Averia Gruesa Libre 已自托管（见 theme.css 的 @font-face），不再请求 Google Fonts 的阻塞式样式表 */}
 			<link rel='preload' href='/fonts/averia-gruesa-libre.woff2' as='font' type='font/woff2' crossOrigin='anonymous' />
+
+			{/* [新增] 首页文章卡要用它；用 prefetch 预热浏览器缓存（preload 会因凭据模式不匹配而报警告） */}
+			<link rel='prefetch' href='/blogs/index.json' />
 		</head>
 	)
 }
